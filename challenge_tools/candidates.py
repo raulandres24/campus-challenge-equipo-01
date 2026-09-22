@@ -8,6 +8,11 @@ def normalize_answer(answer):
     """Normaliza una respuesta para compararla sin distinguir mayúsculas."""
     return answer.strip().casefold()
 
+def average_score(scores):
+    """Devuelve la media aritmética de las puntuaciones."""
+    if not scores:
+        return 0.0
+    return sum(scores) / len(scores)
 
 def rotate_left(items, steps):
     """Devuelve una lista nueva rotada a la izquierda."""
@@ -29,8 +34,3 @@ def rank_teams(entries):
 def unique_tags(tags):
     """Elimina etiquetas repetidas."""
     return list(set(tags))
-
-
-def average_score(scores):
-    """Devuelve la media aritmética de las puntuaciones."""
-    return sum(scores) / len(scores)
