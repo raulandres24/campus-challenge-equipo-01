@@ -71,3 +71,62 @@ def test_average_score_no_modifica_entrada():
     copia = list(original)
     average_score(original)
     assert original == copia
+
+# ==========================================
+# Pruebas avanzadas para rank_teams (R-06)
+# ==========================================
+
+def test_rank_teams_orden_descendente():
+    """R-06: Clasifica correctamente por puntuación descendente."""
+    assert rank_teams([("Beta", 10), ("Alpha", 30)]) == [("Alpha", 30), ("Beta", 10)]
+
+def test_rank_teams_empate_alfabetico():
+    """R-06: Resuelve empates usando orden alfabético."""
+    assert rank_teams([("Zeta", 20), ("Alpha", 20)]) == [("Alpha", 20), ("Zeta", 20)]
+
+def test_rank_teams_empate_insensible_mayusculas():
+    """R-06: El desempate alfabético no debe distinguir entre mayúsculas y minúsculas."""
+    entradas = [("zeta", 15), ("Alpha", 15), ("BETA", 15)]
+    esperado = [("Alpha", 15), ("BETA", 15), ("zeta", 15)]
+    assert rank_teams(entradas) == esperado
+
+def test_rank_teams_mezcla_puntuaciones_y_empates():
+    """R-06: Maneja correctamente una lista con varios empates y diferentes puntuaciones."""
+    entradas = [("B", 10), ("a", 20), ("C", 10), ("d", 20)]
+    esperado = [("a", 20), ("d", 20), ("B", 10), ("C", 10)]
+    assert rank_teams(entradas) == esperado
+
+def test_rank_teams_no_modifica_entrada():
+    """R-02 / R-06: La lista original no debe ser modificada."""
+    original = [("Beta", 10), ("Alpha", 30)]
+    copia = list(original)
+    rank_teams(original)
+    assert original == copia
+
+
+# ==========================================
+# Pruebas avanzadas para rotate_left (R-04)
+# ==========================================
+
+def test_rotate_left_rotacion_normal():
+    """R-04: Rota los elementos a la izquierda correctamente."""
+    assert rotate_left([1, 2, 3, 4, 5], 2) == [3, 4, 5, 1, 2]
+
+def test_rotate_left_pasos_negativos_rota_derecha():
+    """R-04: Interpreta los pasos negativos como rotación a la derecha."""
+    assert rotate_left([1, 2, 3, 4], -1) == [4, 1, 2, 3]
+
+def test_rotate_left_rotacion_circular_mayor_al_tamaño():
+    """R-04: La rotación debe ser circular (soporta pasos mayores al tamaño de la lista)."""
+    assert rotate_left(["a", "b", "c"], 5) == ["c", "a", "b"]
+
+def test_rotate_left_lista_vacia():
+    """R-04: Admite una lista vacía sin arrojar errores."""
+    assert rotate_left([], 3) == []
+
+def test_rotate_left_no_modifica_entrada():
+    """R-02 / R-04: La rotación debe devolver una nueva lista y no alterar la original."""
+    original = [1, 2, 3]
+    copia = list(original)
+    rotate_left(original, 1)
+    assert original == copia
