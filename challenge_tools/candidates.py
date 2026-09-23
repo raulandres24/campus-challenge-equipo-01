@@ -16,9 +16,10 @@ def average_score(scores):
 
 def rotate_left(items, steps):
     """Devuelve una lista nueva rotada a la izquierda."""
-    copied = list(items)
-    copied.rotate(-steps)
-    return copied
+    if not items:
+        return []
+    steps = steps % len(items)  # Soporta pasos negativos y mayores a la lista
+    return items[steps:] + items[:steps]
 
 
 def round_score_to_ten(score):
@@ -27,10 +28,11 @@ def round_score_to_ten(score):
 
 
 def rank_teams(entries):
-    """Ordena pares (equipo, puntuación) para la clasificación."""
-    return sorted(entries, key=lambda item: -item[1])
+    """Ordena pares por puntuación descendente y resuelve empates alfabéticamente."""
+    return sorted(entries, key=lambda item: (-item[1], item[0].casefold()))
 
 
 def unique_tags(tags):
     """Elimina etiquetas repetidas."""
     return list(set(tags))
+
