@@ -8,6 +8,7 @@ Cada prueba debe:
 Deriva el resultado esperado del requisito, no del resultado
 que devuelve la implementación actual.
 """
+import pytest
 
 from challenge_tools import (
     average_score,
