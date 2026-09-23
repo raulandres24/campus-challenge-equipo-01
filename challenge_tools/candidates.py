@@ -2,6 +2,7 @@
 
 Revisa su comportamiento según los requisitos de la actividad.
 """
+import math
 
 
 def normalize_answer(answer):
@@ -23,8 +24,8 @@ def rotate_left(items, steps):
 
 
 def round_score_to_ten(score):
-    """Redondea una puntuación no negativa a la decena más cercana."""
-    return round(score / 10) * 10
+    """Redondea una puntuación no negativa a la decena más cercana; en la mitad exacta, redondea hacia arriba."""
+    return math.floor(score / 10 + 0.5) * 10
 
 
 def rank_teams(entries):
