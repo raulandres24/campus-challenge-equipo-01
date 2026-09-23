@@ -33,6 +33,14 @@ def rank_teams(entries):
 
 
 def unique_tags(tags):
-    """Elimina etiquetas repetidas."""
-    return list(set(tags))
+    """Elimina etiquetas repetidas conservando la primera aparición y el orden original."""
+    result = []
+    seen = set()
+
+    for tag in tags:
+        if tag not in seen:
+            seen.add(tag)
+            result.append(tag)
+
+    return result
 
