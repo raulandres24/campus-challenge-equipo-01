@@ -1,7 +1,13 @@
+# Entorno virtual
 .venv/
 venv/
+
+# Caché de Python y pruebas
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
 .pytest_cache/
+
+# Configuración de PyCharm / VS Code
 .idea/
-.DS_Store
+.vscode/
