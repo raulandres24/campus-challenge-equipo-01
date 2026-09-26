@@ -1,47 +1,33 @@
-"""Funciones iniciales de Campus Challenge.
+def convertir_a_minutos(hora_texto):
+    """Convierte una hora en formato 'HH:MM' a minutos totales (entero)."""
+    pass
 
-Revisa su comportamiento según los requisitos de la actividad.
-"""
-import math
+def crear_reserva(salas, reservas, estudiante_codigo, sala_id, hora_inicio, hora_fin, asistentes):
+    """
+    Intenta crear una reserva.
+    Retorna un diccionario con 'estado' (CONFIRMADA/RECHAZADA) y un 'mensaje'.
+    """
+    pass
 
-
-def normalize_answer(answer):
-    """Normaliza una respuesta para compararla sin distinguir mayúsculas."""
-    return answer.strip().casefold()
-
-def average_score(scores):
-    """Devuelve la media aritmética de las puntuaciones."""
-    if not scores:
-        return 0.0
-    return sum(scores) / len(scores)
-
-def rotate_left(items, steps):
-    """Devuelve una lista nueva rotada a la izquierda."""
-    if not items:
-        return []
-    steps = steps % len(items)  # Soporta pasos negativos y mayores a la lista
-    return items[steps:] + items[:steps]
+def convertir_a_minutos(hora_texto):
+    """Convierte una hora en formato 'HH:MM' a minutos totales (entero)."""
+    # La dejaremos en 'pass' por ahora porque aún no validamos horas
+    pass
 
 
-def round_score_to_ten(score):
-    """Redondea una puntuación no negativa a la decena más cercana; en la mitad exacta, redondea hacia arriba."""
-    return math.floor(score / 10 + 0.5) * 10
+def crear_reserva(salas, reservas, estudiante_codigo, sala_id, hora_inicio, hora_fin, asistentes):
+    """
+    Intenta crear una reserva.
+    Retorna un diccionario con 'estado' (CONFIRMADA/RECHAZADA) y un 'mensaje'.
+    """
+    # 1. Verificar que la sala exista en nuestro diccionario
+    if sala_id not in salas:
+        return {"estado": "RECHAZADA", "mensaje": "La sala solicitada no existe."}
 
+    # 2. Verificar la regla de capacidad
+    capacidad_maxima = salas[sala_id]["capacidad"]
+    if asistentes > capacidad_maxima:
+        return {"estado": "RECHAZADA", "mensaje": "La cantidad de asistentes supera la capacidad de la sala."}
 
-def rank_teams(entries):
-    """Ordena pares por puntuación descendente y resuelve empates alfabéticamente."""
-    return sorted(entries, key=lambda item: (-item[1], item[0].casefold()))
-
-
-def unique_tags(tags):
-    """Elimina etiquetas repetidas conservando la primera aparición y el orden original."""
-    result = []
-    seen = set()
-
-    for tag in tags:
-        if tag not in seen:
-            seen.add(tag)
-            result.append(tag)
-
-    return result
-
+    # Si pasa las validaciones (por ahora), la confirmamos
+    return {"estado": "CONFIRMADA", "mensaje": "Reserva exitosa."}
