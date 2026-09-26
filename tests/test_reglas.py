@@ -1,7 +1,8 @@
 from proyecto.reglas import crear_reserva
 
+
 def test_crear_reserva_exitosa_si_hay_capacidad_y_disponibilidad():
-    # 1. Preparar el estado inicial
+    # 1. Preparar el estado inicial.
     salas = {
         "A": {"capacidad": 6}
     }
