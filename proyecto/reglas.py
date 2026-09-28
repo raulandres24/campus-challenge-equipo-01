@@ -11,7 +11,7 @@ def _hay_conflicto_horario(reservas, sala_id, nuevo_inicio, nuevo_fin, buffer_mi
         existente_fin = convertir_a_minutos(r["hora_fin"])
         if nuevo_inicio < (existente_fin + buffer_min) and nuevo_fin > (existente_inicio - buffer_min):
             return True
-    return False
+    return {"estado": "RECHAZADA", "mensaje": "Cruce de horarios o no se respetan los 15 minutos de desalojo."}
 
 
 def _estudiante_ya_reservo_en_bloque(reservas, estudiante_codigo, nuevo_inicio, nuevo_fin):

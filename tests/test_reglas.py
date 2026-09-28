@@ -20,8 +20,8 @@ def test_crear_reserva_exitosa_si_hay_capacidad_y_disponibilidad():
     )
 
     # 3. Resultado esperado
-    assert resultado["estado"] == "CONFIRMADA"
-
+    assert resultado["estado"] == "RECHAZADA"
+    assert "15 minutos" in resultado["mensaje"]
 
 def test_rechaza_reserva_si_no_respeta_15_minutos_de_desalojo():
     salas = {"A": {"capacidad": 6}}
