@@ -1,60 +1,94 @@
-from proyecto.reglas import crear_reserva
+from proyecto.clases.sala import Sala
+from proyecto.clases.estudiante import Estudiante
+from proyecto.clases.sistema_reservas import SistemaReservas
 
 
 def test_crear_reserva_exitosa_si_hay_capacidad_y_disponibilidad():
-    # 1. Preparar el estado inicial.
-    salas = {
-        "A": {"capacidad": 6}
-    }
-    reservas_activas = []
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    estudiante = Estudiante(92345)
 
-    # 2. Entrada: Estudiante intenta reservar la Sala A
-    resultado = crear_reserva(
-        salas=salas,
-        reservas=reservas_activas,
-        estudiante_codigo=92345,
-        sala_id="A",
+    resultado = sistema.crear_reserva(
+        estudiante=estudiante,
+        id_sala="A",
         hora_inicio="10:00",
         hora_fin="12:00",
         asistentes=4
     )
+    assert resultado["estado"] == "CONFIRMADA"
 
-    # 3. Resultado esperado
-    assert resultado["estado"] == "RECHAZADA"
-    assert "15 minutos" in resultado["mensaje"]
 
 def test_rechaza_reserva_si_no_respeta_15_minutos_de_desalojo():
-    salas = {"A": {"capacidad": 6}}
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    estudiante_previo = Estudiante(11111)
+    estudiante_nuevo = Estudiante(92345)
 
-    # Estado inicial: Alguien mas tiene la sala hasta las 09:45
-    reservas_activas = [
-        {"sala_id": "A", "estudiante_codigo": 11111, "hora_inicio": "07:45", "hora_fin": "09:45"}
-    ]
+    sistema.crear_reserva(estudiante_previo, "A", "07:45", "09:45", 4)
 
-    # Entrada: Tu intentas entrar a las 09:50
-    resultado = crear_reserva(
-        salas=salas,
-        reservas=reservas_activas,
-        estudiante_codigo=92345,
-        sala_id="A",
+    resultado = sistema.crear_reserva(
+        estudiante=estudiante_nuevo,
+        id_sala="A",
         hora_inicio="09:50",
         hora_fin="12:00",
         asistentes=4
     )
-
-    # Resultado esperado: El sistema te debe rebotar
     assert resultado["estado"] == "RECHAZADA"
     assert "15 minutos" in resultado["mensaje"]
 
 
 def test_rechaza_si_estudiante_ya_tiene_reserva_en_otra_sala_mismo_bloque():
-    salas = {"A": {"capacidad": 6}, "B": {"capacidad": 4}}
-    reservas_activas = [
-        {"sala_id": "B", "estudiante_codigo": 92345, "hora_inicio": "10:00", "hora_fin": "12:00"}
-    ]
-    resultado = crear_reserva(
-        salas=salas, reservas=reservas_activas, estudiante_codigo=92345,
-        sala_id="A", hora_inicio="10:00", hora_fin="12:00", asistentes=3
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    sistema.agregar_sala(Sala("B", 4))
+    estudiante = Estudiante(92345)
+
+    sistema.crear_reserva(estudiante, "B", "10:00", "12:00", 2)
+
+    resultado = sistema.crear_reserva(
+        estudiante=estudiante,
+        id_sala="A",
+        hora_inicio="10:00",
+        hora_fin="12:00",
+        asistentes=3
     )
     assert resultado["estado"] == "RECHAZADA"
-    assert "ya cuenta con un espacio" in resultado["mensaje"]
+    assert "espacio reservado" in resultado["mensaje"]
+
+
+def test_consultar_espacios_disponibles():
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    sistema.agregar_sala(Sala("B", 4))
+    sistema.agregar_sala(Sala("C", 10))
+
+    sistema.crear_reserva(Estudiante(11111), "A", "10:00", "12:00", 2)
+
+    disponibles = sistema.consultar_espacios_disponibles("10:30", "11:30")
+
+    assert "A" not in disponibles
+    assert "B" in disponibles
+    assert "C" in disponibles
+
+
+def test_cancelar_reserva_exitosa():
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    estudiante = Estudiante(92345)
+
+    sistema.crear_reserva(estudiante, "A", "10:00", "12:00", 4)
+    resultado = sistema.cancelar_reserva(92345, "A")
+
+    assert resultado["estado"] == "EXITO"
+    assert len(sistema.reservas) == 0
+
+
+def test_cancelar_reserva_rechazada_si_no_existe():
+    sistema = SistemaReservas()
+    sistema.agregar_sala(Sala("A", 6))
+    sistema.crear_reserva(Estudiante(11111), "A", "10:00", "12:00", 4)
+
+    resultado = sistema.cancelar_reserva(99999, "A")
+
+    assert resultado["estado"] == "RECHAZADA"
+    assert len(sistema.reservas) == 1
