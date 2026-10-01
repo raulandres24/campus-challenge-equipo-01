@@ -11,3 +11,9 @@ __pycache__/
 # Configuración de PyCharm / VS Code
 .idea/
 .vscode/
+
+# Variables de entorno (credenciales, IPs locales)
+.env
+
+# Base de datos SQLite (ya no la usamos, pasamos a MongoDB)
+db.sqlite3

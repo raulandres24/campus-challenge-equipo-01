@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Horarios — Reservas UPB</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
+        h1 { color: #004b8d; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 1rem; }
+        th, td { padding: 0.6rem; border: 1px solid #ddd; text-align: left; }
+        th { background: #004b8d; color: white; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>Horarios de salas</h1>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Cerrar sesión ({{ user.username }})</button>
+        </form>
+    </div>
+
+    <h2>Salas disponibles</h2>
+    <table>
+        <tr><th>Nombre</th><th>Capacidad</th><th>Ubicación</th></tr>
+        {% for sala in salas %}
+        <tr>
+            <td>{{ sala.nombre }}</td>
+            <td>{{ sala.capacidad }}</td>
+            <td>{{ sala.ubicacion }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">No hay salas cargadas todavía.</td></tr>
+        {% endfor %}
+    </table>
+
+    <h2>Reservas confirmadas</h2>
+    <table>
+        <tr><th>Sala</th><th>Fecha</th><th>Hora inicio</th><th>Hora fin</th><th>Usuario</th></tr>
+        {% for reserva in reservas %}
+        <tr>
+            <td>{{ reserva.sala.nombre }}</td>
+            <td>{{ reserva.fecha }}</td>
+            <td>{{ reserva.hora_inicio }}</td>
+            <td>{{ reserva.hora_fin }}</td>
+            <td>{{ reserva.usuario.username }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No hay reservas todavía.</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
