@@ -114,17 +114,30 @@ MONGO_DB_NAME=reservas_upb
 
 ## 9. Aplicar las migraciones
 
+> **Si ya tenías el proyecto corriendo desde antes del login institucional:** este incremento cambió el modelo de usuario (`AUTH_USER_MODEL`), y Django no permite ese cambio sobre una base con datos viejos. Hay que empezar de cero: entra a `mongosh`, ejecuta `use reservas_upb` y luego `db.dropDatabase()`. No se pierde nada importante, era solo data de prueba.
+
 ```powershell
 python manage.py migrate
 ```
 
-Vas a ver un aviso sobre `admin`, `auth`, `contenttypes` con "cambios no reflejados" — es normal, **ignóralo**, no corras `makemigrations` sobre esos tres apps.
+Vas a ver un aviso sobre `admin`, `auth`, `contenttypes` con "cambios no reflejados" — es normal, **ignóralo**, no corras `makemigrations` sobre esos tres apps. Si necesitas regenerar la migración de nuestra app (por ejemplo, tras tocar `models.py`), usa `python manage.py makemigrations reservas` (apuntado solo a `reservas`, no a todas las apps).
 
-## 10. Crear tu usuario
+## 10. Crear las cuentas de prueba
+
+Ya no hay `createsuperuser` simple: ahora el login es por correo institucional, y estudiantes/docentes no tienen contraseña propia (ver `docs/AUTENTICACION.md`). Para arrancar con datos de prueba (los 2 superusuarios + algunos estudiantes/docentes simulados), corre:
 
 ```powershell
-python manage.py createsuperuser
+python manage.py crear_cuentas_demo
 ```
+
+Esto crea:
+- `jefe.carrera@upb.edu` / `CambiaEstaClave123` (superusuario)
+- `encargado.salas@upb.edu` / `CambiaEstaClave123` (superusuario)
+- `raulvaca1@upb.edu` + código `95187` (estudiante, matrícula vigente)
+- `estudiante.inactivo@upb.edu` + código `99999` (estudiante inactivo, para probar que el login lo rechaza)
+- `docente.sergio@upb.edu` + código `D001` (docente)
+
+Si prefieres crear un superusuario manualmente, `python manage.py createsuperuser` también funciona (te va a pedir correo y código en vez de username).
 
 ## 11. Correr el servidor
 
