@@ -1,8 +1,8 @@
-﻿"""
+"""
 management/commands/poblar_bd.py
 =================================
-Populate la base de datos con datos de prueba realistas para el sistema
-de reservas de salas UPB.
+Puebla la base de datos con datos de prueba realistas para el sistema
+de reservas de salas UPB, incluyendo usuarios con poderes especiales y estudiantes.
 
 Uso:
     python manage.py poblar_bd            # Crea datos (seguro: no duplica)
@@ -12,6 +12,7 @@ Uso:
 import datetime
 import random
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -21,6 +22,63 @@ from reservas.services import ReservaRechazada, reservar_si_esta_disponible
 # ---------------------------------------------------------------------------
 # Datos semilla
 # ---------------------------------------------------------------------------
+
+USUARIOS_ESPECIALES = [
+    {
+        "username": "sbarrientos",
+        "first_name": "Sergio",
+        "last_name": "Barrientos",
+        "email": "sbarrientos@upb.edu",
+        "is_staff": True,
+        "is_superuser": True,
+        "password": "password",
+    },
+    {
+        "username": "hugozuniga770",
+        "first_name": "Hugo",
+        "last_name": "Zúñiga",
+        "email": "hzuniga@upb.edu",
+        "is_staff": True,
+        "is_superuser": True,
+        "password": "password",
+    },
+    {
+        "username": "rvaca",
+        "first_name": "Raúl",
+        "last_name": "Vaca",
+        "email": "rvaca@upb.edu",
+        "is_staff": True,
+        "is_superuser": True,
+        "password": "password",
+    },
+    {
+        "username": "aparraga",
+        "first_name": "Alejandro",
+        "last_name": "Párraga",
+        "email": "aparraga@upb.edu",
+        "is_staff": True,
+        "is_superuser": True,
+        "password": "password",
+    },
+    {
+        "username": "admin",
+        "first_name": "Administrador",
+        "last_name": "UPB",
+        "email": "admin@upb.edu",
+        "is_staff": True,
+        "is_superuser": True,
+        "password": "password",
+    },
+]
+
+USUARIOS_ESTUDIANTES = [
+    {"username": "lucia.mendez", "first_name": "Lucía", "last_name": "Méndez", "password": "password"},
+    {"username": "carlos.torrico", "first_name": "Carlos", "last_name": "Torrico", "password": "password"},
+    {"username": "valeria.flores", "first_name": "Valeria", "last_name": "Flores", "password": "password"},
+    {"username": "daniela.castro", "first_name": "Daniela", "last_name": "Castro", "password": "password"},
+    {"username": "andres.romero", "first_name": "Andrés", "last_name": "Romero", "password": "password"},
+    {"username": "fernanda.salinas", "first_name": "Fernanda", "last_name": "Salinas", "password": "password"},
+]
 
 SALAS_MOCK = [
     {"nombre": "Sala Alfa",  "en_mantenimiento": False},
@@ -43,19 +101,57 @@ ESTUDIANTES_MOCK = [
     {"codigo": "U-92010", "nombres": "Fernanda",  "apellidos": "Salinas",   "activo": True,  "matricula": True},
 ]
 
-# Bloques horarios predefinidos (hora_inicio, hora_fin)
+# Bloques horarios predefinidos con intervalos de desalojo (15 min)
 BLOQUES_HORARIOS = [
-    (datetime.time(7, 0),  datetime.time(9, 0)),
-    (datetime.time(9, 30), datetime.time(11, 30)),
-    (datetime.time(12, 0), datetime.time(14, 0)),
+    (datetime.time(7, 45),  datetime.time(9, 45)),
+    (datetime.time(10, 0),  datetime.time(12, 0)),
+    (datetime.time(12, 15), datetime.time(14, 15)),
     (datetime.time(14, 30), datetime.time(16, 30)),
-    (datetime.time(17, 0), datetime.time(19, 0)),
+    (datetime.time(16, 45), datetime.time(18, 45)),
+    (datetime.time(19, 0),  datetime.time(21, 0)),
 ]
 
 
-# ---------------------------------------------------------------------------
-# Helpers privados del comando
-# ---------------------------------------------------------------------------
+def _crear_usuarios(stdout) -> None:
+    # 1. Crear usuarios con poderes especiales
+    for u in USUARIOS_ESPECIALES:
+        user = User.objects.filter(username=u["username"]).first()
+        if not user:
+            user = User.objects.create_user(
+                username=u["username"],
+                email=u.get("email", ""),
+                first_name=u["first_name"],
+                last_name=u["last_name"],
+                is_staff=u["is_staff"],
+                is_superuser=u["is_superuser"],
+            )
+            user.set_password(u["password"])
+            user.save()
+            stdout.write(f"  [OK] Usuario con Poderes '{user.username}' ({u['first_name']} {u['last_name']})")
+        else:
+            user.first_name = u["first_name"]
+            user.last_name = u["last_name"]
+            user.is_staff = u["is_staff"]
+            user.is_superuser = u["is_superuser"]
+            user.set_password(u["password"])
+            user.save()
+            stdout.write(f"  [skip] Usuario '{user.username}' actualizado con poderes")
+
+    # 2. Crear usuarios estudiantes
+    for u in USUARIOS_ESTUDIANTES:
+        user = User.objects.filter(username=u["username"]).first()
+        if not user:
+            user = User.objects.create_user(
+                username=u["username"],
+                first_name=u["first_name"],
+                last_name=u["last_name"],
+                is_staff=False,
+                is_superuser=False,
+            )
+            user.set_password(u["password"])
+            user.save()
+            stdout.write(f"  [OK] Estudiante usuario '{user.username}'")
+
 
 def _crear_salas(stdout) -> list[Sala]:
     salas = []
@@ -89,11 +185,6 @@ def _crear_estudiantes(stdout) -> list[Estudiante]:
 
 
 def _generar_reservas(salas: list[Sala], estudiantes: list[Estudiante], stdout) -> None:
-    """Genera reservas aleatorias para los próximos 14 días.
-
-    Usa services.reservar_si_esta_disponible para respetar todas las
-    reglas de negocio (buffer, matrícula, mantenimiento, etc.).
-    """
     hoy = timezone.localdate()
     salas_disponibles = [s for s in salas if not s.en_mantenimiento]
     estudiantes_habilitados = [e for e in estudiantes if e.puede_reservar]
@@ -101,18 +192,30 @@ def _generar_reservas(salas: list[Sala], estudiantes: list[Estudiante], stdout) 
     creadas = 0
     rechazadas = 0
 
-    # Intentamos ~30 reservas distribuidas en los próximos 14 días
-    intentos = [
-        (
-            hoy + datetime.timedelta(days=random.randint(0, 13)),
-            random.choice(salas_disponibles),
-            random.choice(estudiantes_habilitados),
-            random.choice(BLOQUES_HORARIOS),
-        )
-        for _ in range(30)
-    ]
+    # Reservas para hoy (para que el calendario se vea lleno y hermoso de inmediato)
+    for sala in salas_disponibles:
+        # Asignar 2 o 3 bloques para hoy en cada sala
+        bloques_hoy = random.sample(BLOQUES_HORARIOS, 3)
+        for inicio, fin in bloques_hoy:
+            estudiante = random.choice(estudiantes_habilitados)
+            try:
+                reservar_si_esta_disponible(
+                    estudiante=estudiante,
+                    sala=sala,
+                    fecha=hoy,
+                    hora_inicio=inicio,
+                    hora_fin=fin,
+                )
+                creadas += 1
+            except ReservaRechazada:
+                rechazadas += 1
 
-    for fecha, sala, estudiante, (inicio, fin) in intentos:
+    # Intentamos más reservas para los próximos 7 días
+    for _ in range(25):
+        fecha = hoy + datetime.timedelta(days=random.randint(1, 7))
+        sala = random.choice(salas_disponibles)
+        estudiante = random.choice(estudiantes_habilitados)
+        inicio, fin = random.choice(BLOQUES_HORARIOS)
         try:
             reservar_si_esta_disponible(
                 estudiante=estudiante,
@@ -121,26 +224,17 @@ def _generar_reservas(salas: list[Sala], estudiantes: list[Estudiante], stdout) 
                 hora_inicio=inicio,
                 hora_fin=fin,
             )
-            stdout.write(
-                f"  [OK] Reserva: {estudiante.nombres} en {sala.nombre} "
-                f"el {fecha} {inicio:%H:%M}-{fin:%H:%M}"
-            )
             creadas += 1
-        except ReservaRechazada as e:
-            stdout.write(f"  [skip] Rechazada ({e})")
+        except ReservaRechazada:
             rechazadas += 1
 
-    stdout.write(f"\n  Total: {creadas} reservas creadas, {rechazadas} rechazadas por reglas de negocio.")
+    stdout.write(f"\n  Total: {creadas} reservas activas creadas en MongoDB.")
 
-
-# ---------------------------------------------------------------------------
-# Comando Django
-# ---------------------------------------------------------------------------
 
 class Command(BaseCommand):
     help = (
-        "Puebla la base de datos con datos de prueba (Estudiantes, Salas y Reservas). "
-        "Usa --limpiar para borrar todo antes de crear."
+        "Puebla la base de datos con usuarios de login (incluyendo poderes especiales), "
+        "estudiantes, salas y reservas de prueba. Usa --limpiar para reiniciar desde cero."
     )
 
     def add_arguments(self, parser):
@@ -156,15 +250,18 @@ class Command(BaseCommand):
             Reserva.objects.all().delete()
             Estudiante.objects.all().delete()
             Sala.objects.all().delete()
-            self.stdout.write("  Datos eliminados.\n")
+            self.stdout.write("  Datos de negocio eliminados.\n")
 
-        self.stdout.write(self.style.HTTP_INFO("-> Creando salas..."))
+        self.stdout.write(self.style.HTTP_INFO("-> Configurando usuarios del sistema (Poderes Especiales y Estudiantes)..."))
+        _crear_usuarios(self.stdout)
+
+        self.stdout.write(self.style.HTTP_INFO("\n-> Creando salas..."))
         salas = _crear_salas(self.stdout)
 
         self.stdout.write(self.style.HTTP_INFO("\n-> Creando estudiantes..."))
         estudiantes = _crear_estudiantes(self.stdout)
 
-        self.stdout.write(self.style.HTTP_INFO("\n-> Generando reservas..."))
+        self.stdout.write(self.style.HTTP_INFO("\n-> Generando reservas para el calendario..."))
         _generar_reservas(salas, estudiantes, self.stdout)
 
-        self.stdout.write(self.style.SUCCESS("\n[DONE] Base de datos poblada correctamente."))
+        self.stdout.write(self.style.SUCCESS("\n[DONE] Base de datos poblada y usuarios con poderes listos para logueo."))

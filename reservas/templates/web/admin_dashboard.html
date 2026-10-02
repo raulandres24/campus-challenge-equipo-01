@@ -1,0 +1,462 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración — UPB Santa Cruz</title>
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+
+<body>
+
+    <!-- NAVBAR ADMIN -->
+    <header class="navbar">
+        <a href="{% url 'admin_dashboard' %}" class="brand">
+            <div class="brand-badge">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 8L82 22V50C82 70 50 92 50 92C50 92 18 70 18 50V22L50 8Z" fill="#002B49"
+                        stroke="#C59B27" stroke-width="5" />
+                    <circle cx="50" cy="46" r="14" fill="#C59B27" />
+                    <path
+                        d="M50 24V29M50 63V68M28 46H33M67 46H72M34.5 30.5L38 34M62 58L65.5 61.5M34.5 61.5L38 58M62 34L65.5 30.5"
+                        stroke="#FFD700" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <div class="brand-text">
+                <h1>Panel de Control UPB</h1>
+                <span>Administración y Gestión de Reservas</span>
+            </div>
+        </a>
+
+        <div class="nav-actions">
+            <div class="admin-badge">
+                <span>{{ user_info.insignia }}</span>
+                <span style="opacity: 0.85;">({{ user_info.nombre_completo }})</span>
+            </div>
+
+            <a href="{% url 'inicio' %}" class="btn-link-pub" title="Ir a la vista de estudiante">
+                <span>👁️ Vista Estudiante</span>
+            </a>
+
+            <a href="/admin/" target="_blank" class="btn-link-pub">
+                <span>⚙️ Django Admin</span>
+            </a>
+
+            <a href="{% url 'logout' %}" class="btn-logout">
+                <span>Salir</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- KPI METRICS -->
+    <section class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-icon blue">📅</div>
+            <div class="kpi-info">
+                <h3>{{ metricas.reservas_hoy }}</h3>
+                <p>Reservas para Hoy</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon gold">📁</div>
+            <div class="kpi-info">
+                <h3>{{ metricas.total_historico }}</h3>
+                <p>Total en MongoDB</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon green">🏢</div>
+            <div class="kpi-info">
+                <h3>{{ metricas.salas_habilitadas }} / {{ salas|length }}</h3>
+                <p>Salas Habilitadas</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon red">🛠️</div>
+            <div class="kpi-info">
+                <h3>{{ metricas.salas_mantenimiento }}</h3>
+                <p>En Mantenimiento</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- TABS NAVIGATION -->
+    <div class="tabs-nav-wrapper">
+        <nav class="tabs-nav">
+            <button type="button" class="tab-btn active" onclick="cambiarTab('tab-registro', this)">
+                <span>📋 Registro Completo (MongoDB)</span>
+            </button>
+            <button type="button" class="tab-btn" onclick="cambiarTab('tab-salas', this)">
+                <span>🏢 Gestión de Salas</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="main-container single">
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: REGISTRO COMPLETO DE TODAS LAS RESERVAS            -->
+        <!-- ========================================================= -->
+        <section class="tab-content active" id="tab-registro">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📋 Registro Histórico de Reservas (MongoDB)</span>
+                    </div>
+
+                    <!-- Buscador y Filtros -->
+                    <form method="GET" style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="text" name="q" class="input-control" placeholder="Buscar estudiante o sala..."
+                            value="{{ q_busqueda }}" style="width: 240px; padding: 0.45rem 0.8rem;">
+                        <select name="filtro_estado" class="input-control" style="width: 150px; padding: 0.45rem 0.8rem;"
+                            onchange="this.form.submit()">
+                            <option value="">Todos los estados</option>
+                            <option value="CONFIRMADA" {% if filtro_estado=='CONFIRMADA' %}selected{% endif %}>
+                                CONFIRMADA</option>
+                            <option value="CANCELADA" {% if filtro_estado=='CANCELADA' %}selected{% endif %}>CANCELADA
+                            </option>
+                        </select>
+                        <button type="submit" class="btn-link-pub" style="padding: 0.45rem 0.8rem;">Buscar</button>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Sala</th>
+                                <th>Estudiante</th>
+                                <th>Código</th>
+                                <th>Estado</th>
+                                <th>Acciones de Administrador</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in todas_las_reservas %}
+                            <tr id="fila-reserva-{{ r.id }}">
+                                <td><strong>{{ r.fecha|date:"d/m/Y" }}</strong></td>
+                                <td><span
+                                        class="chip-time">{{ r.hora_inicio|time:"H:i" }} - {{ r.hora_fin|time:"H:i" }}</span></td>
+                                <td><span class="chip-sala">{{ r.sala.nombre }}</span></td>
+                                <td>{{ r.estudiante.nombres }} {{ r.estudiante.apellidos }}</td>
+                                <td><code>{{ r.estudiante.codigo_estudiante }}</code>
+                                </td>
+                                <td>
+                                    <span
+                                        class="status-badge {% if r.estado == 'CONFIRMADA' %}confirmada{% else %}cancelada{% endif %}">
+                                        {{ r.estado }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-btns-group">
+                                        <button type="button" class="btn-action-edit" title="Editar horario o sala"
+                                            onclick="abrirModalEditar('{{ r.id }}', '{{ r.sala.nombre }}', '{{ r.fecha|date:'Y-m-d' }}', '{{ r.hora_inicio|time:'H:i' }}', '{{ r.hora_fin|time:'H:i' }}', '{{ r.estado }}')">
+                                            ✏️ Mover / Editar
+                                        </button>
+                                        <button type="button" class="btn-action-del" title="Eliminar registro"
+                                            onclick="eliminarReservaDefinitiva('{{ r.id }}')">
+                                            🗑️ Borrar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                    No se encontraron reservas registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: GESTIÓN DE SALAS                                   -->
+        <!-- ========================================================= -->
+        <section class="tab-content" id="tab-salas">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>🏢 Catálogo de Salas del Campus</span>
+                    </div>
+
+                    <button type="button" class="btn-new-room" onclick="abrirModalCrearSala()">
+                        <span>➕ Crear Nueva Sala</span>
+                    </button>
+                </div>
+
+                <div class="salas-admin-grid">
+                    {% for sala in salas %}
+                    <div class="sala-admin-card">
+                        <div class="sala-header">
+                            <div>
+                                <div class="sala-name">{{ sala.nombre }}</div>
+                                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                    Estado: <strong id="maint-text-{{ sala.id }}"
+                                        style="color: {% if sala.en_mantenimiento %}#dc2626{% else %}#16a34a{% endif %};">
+                                        {% if sala.en_mantenimiento %}En Mantenimiento (Bloqueada){% else %}Habilitada{% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <label class="switch-toggle" title="Alternar Mantenimiento">
+                                <input type="checkbox" {% if sala.en_mantenimiento %}checked{% endif %}
+                                    onchange="toggleMantenimientoSala('{{ sala.id }}', this)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================= -->
+    <!-- MODAL 1: EDITAR / MOVER RESERVA                               -->
+    <!-- ============================================================= -->
+    <div class="modal-overlay" id="modalEditarReserva">
+        <div class="modal-card">
+            <div class="modal-title">
+                <span>✏️ Editar / Mover Reserva</span>
+                <button onclick="cerrarModalEditar()"
+                    class="modal-close">✕</button>
+            </div>
+
+            <form id="formEditarReserva" onsubmit="guardarEdicionReserva(event)">
+                <input type="hidden" id="editReservaId">
+
+                <div class="form-group-modal">
+                    <label class="form-label">Sala de Estudio</label>
+                    <select id="editSala" class="input-control" required>
+                        {% for s in salas %}
+                        <option value="{{ s.nombre }}">{{ s.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group-modal">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" id="editFecha" class="input-control" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="form-group-modal">
+                        <label class="form-label">Hora Inicio</label>
+                        <input type="time" id="editHoraInicio" class="input-control" required>
+                    </div>
+                    <div class="form-group-modal">
+                        <label class="form-label">Hora Fin</label>
+                        <input type="time" id="editHoraFin" class="input-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group-modal">
+                    <label class="form-label">Estado</label>
+                    <select id="editEstado" class="input-control">
+                        <option value="CONFIRMADA">CONFIRMADA</option>
+                        <option value="CANCELADA">CANCELADA</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="cerrarModalEditar()">Cancelar</button>
+                    <button type="submit" class="btn-modal-save">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- MODAL 2: CREAR NUEVA SALA                                     -->
+    <!-- ============================================================= -->
+    <div class="modal-overlay" id="modalCrearSala">
+        <div class="modal-card">
+            <div class="modal-title">
+                <span>🏢 Crear Nueva Sala</span>
+                <button onclick="cerrarModalCrearSala()"
+                    class="modal-close">✕</button>
+            </div>
+
+            <form id="formCrearSala" onsubmit="enviarCrearSala(event)">
+                <div class="form-group-modal">
+                    <label class="form-label">Nombre de la Sala</label>
+                    <input type="text" id="nuevoNombreSala" class="input-control" placeholder="Ej: Sala Epsilon" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="cerrarModalCrearSala()">Cancelar</button>
+                    <button type="submit" class="btn-modal-save">Crear Sala</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOASTS -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- SCRIPTS ADMIN -->
+    <script>
+        function mostrarToast(mensaje, tipo = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${tipo}`;
+            toast.innerHTML = `
+                <span style="font-size: 1.2rem;">${tipo === 'success' ? '✅' : '⚠️'}</span>
+                <div>${mensaje}</div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function cambiarTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function abrirModalEditar(id, sala, fecha, hIni, hFin, estado) {
+            document.getElementById('editReservaId').value = id;
+            document.getElementById('editSala').value = sala;
+            document.getElementById('editFecha').value = fecha;
+            document.getElementById('editHoraInicio').value = hIni;
+            document.getElementById('editHoraFin').value = hFin;
+            document.getElementById('editEstado').value = estado;
+            document.getElementById('modalEditarReserva').style.display = 'flex';
+        }
+
+        function cerrarModalEditar() {
+            document.getElementById('modalEditarReserva').style.display = 'none';
+        }
+
+        async function guardarEdicionReserva(event) {
+            event.preventDefault();
+            const payload = {
+                reserva_id: document.getElementById('editReservaId').value,
+                nombre_sala: document.getElementById('editSala').value,
+                fecha: document.getElementById('editFecha').value,
+                hora_inicio: document.getElementById('editHoraInicio').value,
+                hora_fin: document.getElementById('editHoraFin').value,
+                estado: document.getElementById('editEstado').value,
+            };
+
+            try {
+                const res = await fetch('{% url "api_editar_reserva" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.estado === 'CONFIRMADA' || data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    cerrarModalEditar();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                }
+            } catch (err) {
+                mostrarToast('Error al actualizar reserva.', 'error');
+            }
+        }
+
+        async function eliminarReservaDefinitiva(reservaId) {
+            if (!confirm('¿Estás seguro de ELIMINAR definitivamente este registro de la base de datos?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('{% url "api_eliminar_reserva" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ reserva_id: reservaId })
+                });
+                const data = await res.json();
+                if (data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    const fila = document.getElementById(`fila-reserva-${reservaId}`);
+                    if (fila) fila.remove();
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                }
+            } catch (err) {
+                mostrarToast('Error al eliminar reserva.', 'error');
+            }
+        }
+
+        function abrirModalCrearSala() {
+            document.getElementById('modalCrearSala').style.display = 'flex';
+        }
+
+        function cerrarModalCrearSala() {
+            document.getElementById('modalCrearSala').style.display = 'none';
+        }
+
+        async function enviarCrearSala(event) {
+            event.preventDefault();
+            const nombre = document.getElementById('nuevoNombreSala').value.trim();
+            if (!nombre) return;
+
+            try {
+                const res = await fetch('{% url "api_crear_sala" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ nombre: nombre })
+                });
+                const data = await res.json();
+                if (data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    cerrarModalCrearSala();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                }
+            } catch (err) {
+                mostrarToast('Error al crear sala.', 'error');
+            }
+        }
+
+        async function toggleMantenimientoSala(salaId, checkbox) {
+            try {
+                const res = await fetch('{% url "api_toggle_mantenimiento" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ sala_id: salaId })
+                });
+                const data = await res.json();
+                if (data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    const textElem = document.getElementById(`maint-text-${salaId}`);
+                    if (textElem) {
+                        textElem.innerText = data.en_mantenimiento ? 'En Mantenimiento (Bloqueada)' : 'Habilitada';
+                        textElem.style.color = data.en_mantenimiento ? '#dc2626' : '#16a34a';
+                    }
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                    checkbox.checked = !checkbox.checked;
+                }
+            } catch (err) {
+                mostrarToast('Error al cambiar mantenimiento.', 'error');
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+    </script>
+</body>
+
+</html>

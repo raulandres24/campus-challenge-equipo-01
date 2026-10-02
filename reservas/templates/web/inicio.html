@@ -1,0 +1,506 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disponibilidad y Reservas — UPB Santa Cruz</title>
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+
+<body>
+
+    <!-- NAVBAR SUPERIOR -->
+    <header class="navbar">
+        <a href="{% url 'inicio' %}" class="brand">
+            <div class="brand-badge">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 8L82 22V50C82 70 50 92 50 92C50 92 18 70 18 50V22L50 8Z" fill="#002B49"
+                        stroke="#C59B27" stroke-width="5" />
+                    <circle cx="50" cy="46" r="14" fill="#C59B27" />
+                    <path
+                        d="M50 24V29M50 63V68M28 46H33M67 46H72M34.5 30.5L38 34M62 58L65.5 61.5M34.5 61.5L38 58M62 34L65.5 30.5"
+                        stroke="#FFD700" stroke-width="3" stroke-linecap="round" />
+                </svg>
+            </div>
+            <div class="brand-text">
+                <h1>Sistema de Reservas</h1>
+                <span>UPB Santa Cruz • Campus</span>
+            </div>
+        </a>
+
+        <div class="nav-center">
+            <div class="date-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Hoy: {{ dia_nombre }}, {{ fecha_formateada }}</span>
+            </div>
+        </div>
+
+        <div class="nav-right">
+            <div class="user-pill">
+                <div class="user-avatar">{{ user_info.nombre_completo|slice:":1"|upper }}</div>
+                <span class="user-name">{{ user_info.nombre_completo }}</span>
+                <span class="role-tag">{{ user_info.insignia }}</span>
+            </div>
+
+            {% if tiene_poderes %}
+            <a href="/admin/" target="_blank" class="btn-admin" title="Ir al panel de administración">
+                <span>⚙️ Django Admin</span>
+            </a>
+            {% endif %}
+
+            <a href="{% url 'logout' %}" class="btn-logout">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Salir</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- BARRA DE PODERES ESPECIALES -->
+    {% if tiene_poderes %}
+    <div class="admin-toolbar">
+        <div class="admin-powers-badge">
+            <span>👑 MODO PODERES ESPECIALES ACTIVO</span>
+            <span style="font-weight: 500; opacity: 0.85;">— Puedes alternar mantenimiento y cancelar cualquier
+                reserva.</span>
+        </div>
+        <div class="admin-actions">
+            <button type="button" class="btn-toggle-maint" onclick="abrirModalMantenimiento()">
+                🛠️ Gestionar Mantenimiento de Salas
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main class="main-container">
+
+        <!-- COLUMNA IZQUIERDA: CALENDARIO DE DISPONIBILIDAD -->
+        <section class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Disponibilidad de Salas</span>
+                </div>
+
+                <div class="date-selector-group">
+<button type="button" class="btn-date" onclick="moverDia(-1)" aria-label="Día anterior">‹</button>
+<button type="button" class="btn-date" onclick="moverDia(1)" aria-label="Día siguiente">›</button>
+                    <a href="?fecha={{ hoy|date:'Y-m-d' }}"
+                        class="btn-date {% if fecha_iso == hoy|date:'Y-m-d' %}active{% endif %}">Hoy</a>
+                    <input type="date" class="input-date" value="{{ fecha_iso }}"
+                        onchange="location.href='?fecha=' + this.value;">
+                </div>
+            </div>
+
+            <!-- Leyenda de Salas -->
+            <div class="rooms-legend">
+                <span class="legend-title">Salas Campus:</span>
+                {% for sala in salas %}
+                <span
+                    class="room-chip {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
+                    {{ sala.nombre }}
+                    {% if sala.en_mantenimiento %}(Mantenimiento){% endif %}
+                </span>
+                {% endfor %}
+            </div>
+
+            <!-- Cuadrícula / Horario Visual -->
+            <div class="calendar-grid-wrapper">
+                <div class="timeline-header-date">
+                    <h2>{{ fecha_formateada }}</h2>
+                    <p>{{ dia_nombre }}</p>
+                </div>
+
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="hour-column">Hora</th>
+                            {% for sala in salas %}
+                            <th class="room-th {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
+                                {{ sala.nombre }}
+                                {% if sala.en_mantenimiento %}
+                                <div style="font-size: 0.65rem; color: #ef4444;">[Mantenimiento]</div>
+                                {% endif %}
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bloque in bloques_predefinidos %}
+                        <tr data-ini="{{ bloque.inicio }}" data-fin="{{ bloque.fin }}">
+                            <td class="hour-column">{{ bloque.inicio }}<br><small style="opacity: 0.6;">{{ bloque.fin }}</small></td>
+                            {% for sala in salas %}
+                            <td>
+                                <!-- Buscar si hay reserva en esta sala y bloque -->
+                                {% for res in reservas_calendario %}
+                                {% if res.sala_nombre == sala.nombre and res.hora_inicio == bloque.inicio %}
+                                <div class="reservation-block"
+                                    style="background: {{ res.color_bg }}; border-left-color: {{ res.color_border }};"
+                                    title="{{ res.estudiante_nombre }} ({{ res.estudiante_codigo }})">
+                                    <span class="res-time">{{ res.hora_inicio }} - {{ res.hora_fin }}</span>
+                                    <div class="res-student">{{ res.estudiante_nombre }}</div>
+                                    <div class="res-room">{{ res.estudiante_codigo }}</div>
+
+                                    {% if tiene_poderes or res.es_propia %}
+                                    <button class="res-cancel-btn" title="Cancelar Reserva"
+                                        onclick="cancelarReservaDirecta('{{ res.id }}', '{{ res.estudiante_nombre }}', '{{ res.sala_nombre }}')">
+                                        ✕
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if not sala.en_mantenimiento %}
+                                <div class="empty-slot"
+                                    onclick="seleccionarSlot('{{ sala.nombre }}', '{{ bloque.inicio }}', '{{ bloque.fin }}')">
+                                    + Disponible
+                                </div>
+                                {% else %}
+                                <div style="text-align: center; color: #94a3b8; font-size: 0.72rem; padding: 0.5rem;">
+                                    Fuera de servicio
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- COLUMNA DERECHA: FORMULARIO "RESERVAR PARA HOY" -->
+        <aside class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    <span>Reservar para Hoy</span>
+                </div>
+            </div>
+
+            <form class="reservation-sidebar" id="formReserva" onsubmit="enviarReserva(event)">
+                <div class="info-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>Solo se pueden reservar salas para el día de hoy. Máximo 2 horas por turno. Intervalo
+                        obligatorio de 15 min de desalojo.</span>
+                </div>
+
+                <!-- Selector de Sala -->
+                <div>
+                    <label class="form-label" for="selectSala">Sala de Estudio</label>
+                    <select id="selectSala" class="input-control" required>
+                        <option value="">— Seleccionar Sala —</option>
+                        {% for sala in salas %}
+                        <option value="{{ sala.nombre }}" {% if sala.en_mantenimiento %}disabled{% endif %}>
+                            {{ sala.nombre }} {% if sala.en_mantenimiento %}(En Mantenimiento){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nombre y Apellido -->
+                <div class="name-row">
+                    <div>
+                        <label class="form-label" for="inputNombre">Nombre</label>
+                        <input type="text" id="inputNombre" class="input-control" placeholder="Nombre"
+                            value="{{ user.first_name }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label" for="inputApellido">Apellido</label>
+                        <input type="text" id="inputApellido" class="input-control" placeholder="Apellido"
+                            value="{{ user.last_name }}" required>
+                    </div>
+                </div>
+
+                <!-- Código de Estudiante -->
+                <div>
+                    <label class="form-label" for="inputCodigo">Código de Estudiante</label>
+                    <input type="text" id="inputCodigo" class="input-control" placeholder="Ej: U-92001"
+                        value="{% if estudiante_asociado %}{{ estudiante_asociado.codigo_estudiante }}{% endif %}"
+                        required>
+
+                    {% if tiene_poderes %}
+                    <div style="margin-top: 0.35rem;">
+                        <select class="input-control" style="padding: 0.4rem; font-size: 0.78rem;"
+                            onchange="document.getElementById('inputCodigo').value = this.value; autocompletarPorSelect(this);">
+                            <option value="">⚡ Seleccionar Estudiante Rápido...</option>
+                            {% for est in estudiantes_habilitados %}
+                            <option value="{{ est.codigo_estudiante }}" data-nombres="{{ est.nombres }}"
+                                data-apellidos="{{ est.apellidos }}">
+                                {{ est.apellidos }}, {{ est.nombres }} ({{ est.codigo_estudiante }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Selector de Horarios (Pills Grid) -->
+                <div>
+                    <label class="form-label">Seleccionar Horario</label>
+                    <div class="time-slots-grid">
+                        {% for b in bloques_predefinidos %}
+                        <button type="button" class="time-slot-btn"
+                            onclick="seleccionarHorarioBtn(this, '{{ b.inicio }}', '{{ b.fin }}')">
+                            {{ b.label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="horaInicio" required>
+                    <input type="hidden" id="horaFin" required>
+                </div>
+
+                <!-- Detalle de Actividad -->
+                <div>
+                    <label class="form-label" for="inputDetalle">Detalle de la Actividad</label>
+                    <textarea id="inputDetalle" class="input-control" rows="2"
+                        placeholder="Ej: Estudio para examen de software..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-reserve-action" id="btnSubmitReserva">
+                    <span>Confirmar Reserva</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </form>
+        </aside>
+
+    </main>
+
+    <!-- MODAL GESTIÓN DE MANTENIMIENTO (PODERES ESPECIALES) -->
+    {% if tiene_poderes %}
+    <div class="modal-overlay" id="modalMantenimiento">
+        <div class="modal-card">
+            <div class="modal-title">
+                <span>🛠️ Estado de Mantenimiento</span>
+                <button onclick="cerrarModalMantenimiento()"
+                    class="modal-close">✕</button>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Activa el switch para poner la sala en mantenimiento (no disponible para reservas).
+            </p>
+
+            {% for sala in salas %}
+            <div class="room-maint-item">
+                <div>
+                    <strong>{{ sala.nombre }}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);" id="status-text-{{ sala.id }}">
+                        {% if sala.en_mantenimiento %}En Mantenimiento{% else %}Habilitada para uso{% endif %}
+                    </div>
+                </div>
+                <label class="switch-toggle">
+                    <input type="checkbox" {% if sala.en_mantenimiento %}checked{% endif %}
+                        onchange="toggleMantenimiento('{{ sala.id }}', this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TOASTS DE NOTIFICACIÓN -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- SCRIPTS JS -->
+    <script>
+        function mostrarToast(mensaje, tipo = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${tipo}`;
+            toast.innerHTML = `
+                <span style="font-size: 1.2rem;">${tipo === 'success' ? '✅' : '⚠️'}</span>
+                <div>${mensaje}</div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function seleccionarHorarioBtn(btn, inicio, fin) {
+            document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('horaInicio').value = inicio;
+            document.getElementById('horaFin').value = fin;
+        }
+
+        function seleccionarSlot(salaNombre, inicio, fin) {
+            document.getElementById('selectSala').value = salaNombre;
+            document.querySelectorAll('.time-slot-btn').forEach(b => {
+                if (b.innerText.includes(inicio)) {
+                    seleccionarHorarioBtn(b, inicio, fin);
+                }
+            });
+            document.getElementById('formReserva').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function autocompletarPorSelect(select) {
+            const option = select.options[select.selectedIndex];
+            if (option.dataset.nombres) {
+                document.getElementById('inputNombre').value = option.dataset.nombres;
+                document.getElementById('inputApellido').value = option.dataset.apellidos;
+            }
+        }
+
+        async function enviarReserva(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSubmitReserva');
+            btn.disabled = true;
+            btn.innerText = 'Procesando...';
+
+            const payload = {
+                codigo_estudiante: document.getElementById('inputCodigo').value,
+                nombre_sala: document.getElementById('selectSala').value,
+                hora_inicio: document.getElementById('horaInicio').value,
+                hora_fin: document.getElementById('horaFin').value,
+                fecha: '{{ fecha_iso }}'
+            };
+
+            if (!payload.hora_inicio || !payload.hora_fin) {
+                mostrarToast('Por favor selecciona un horario de la cuadrícula.', 'error');
+                btn.disabled = false;
+                btn.innerText = 'Confirmar Reserva';
+                return;
+            }
+
+            try {
+                const response = await fetch('{% url "api_reservar" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.estado === 'CONFIRMADA') {
+                    mostrarToast(`¡Reserva confirmada en ${data.datos.sala}!`, 'success');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                    btn.disabled = false;
+                    btn.innerText = 'Confirmar Reserva';
+                }
+            } catch (err) {
+                mostrarToast('Error de comunicación con el servidor.', 'error');
+                btn.disabled = false;
+                btn.innerText = 'Confirmar Reserva';
+            }
+        }
+
+        async function cancelarReservaDirecta(reservaId, estudiante, sala) {
+            if (!confirm(`¿Estás seguro de cancelar la reserva de ${estudiante} en ${sala}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('{% url "api_cancelar" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ reserva_id: reservaId })
+                });
+
+                const data = await response.json();
+                if (data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                }
+            } catch (err) {
+                mostrarToast('Error al cancelar la reserva.', 'error');
+            }
+        }
+
+        function abrirModalMantenimiento() {
+            const modal = document.getElementById('modalMantenimiento');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function cerrarModalMantenimiento() {
+            const modal = document.getElementById('modalMantenimiento');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function toggleMantenimiento(salaId, checkbox) {
+            try {
+                const response = await fetch('{% url "api_toggle_mantenimiento" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ sala_id: salaId })
+                });
+
+                const data = await response.json();
+                if (data.estado === 'EXITO') {
+                    mostrarToast(data.mensaje, 'success');
+                    const textSpan = document.getElementById(`status-text-${salaId}`);
+                    if (textSpan) {
+                        textSpan.innerText = data.en_mantenimiento ? 'En Mantenimiento' : 'Habilitada para uso';
+                    }
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    mostrarToast(data.mensaje, 'error');
+                    checkbox.checked = !checkbox.checked;
+                }
+            } catch (err) {
+                mostrarToast('Error al modificar sala.', 'error');
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+    
+        function moverDia(n) {
+            const d = new Date('{{ fecha_iso }}T12:00:00');
+            d.setDate(d.getDate() + n);
+            const p = v => String(v).padStart(2, '0');
+            location.href = '?fecha=' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        }
+
+        // Resalta el bloque horario actual (solo si se ve el día de hoy)
+        (function () {
+            if ('{{ fecha_iso }}' !== '{{ hoy|date:"Y-m-d" }}') return;
+            const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+            const f = t => { const p = t.split(':'); return +p[0] * 60 + +p[1]; };
+            document.querySelectorAll('tr[data-ini]').forEach(r => {
+                if (m >= f(r.dataset.ini) && m < f(r.dataset.fin)) r.classList.add('now-row');
+            });
+        })();
+    </script>
+</body>
+
+</html>
