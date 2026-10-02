@@ -1,0 +1,11 @@
+-No puedes tocar el venv
+-No puedes tocar docs
+-No puedes tocar .gitignore
+-No puedes tocar .idea ya que lo tengo abierto en pycharm el proyecto
+-No puedes tocar pytest.ini de no ser necesario
+-Saca la informacion necesaria del README.md
+-Saca la informacion necesaria del sesion04.md
+-Es necesario que lo revises y tiene que estar perfectamente estructurado todo y ordenado.
+-Usaremos MongoDB con django instalado en .venv no en todo mi sistema para que funcione solo aqui.
+-http://127.0.0.1:8000/ con usuario admin y contraseña admin123.
+-python manage.py runserver //Con esto corres el servidor
