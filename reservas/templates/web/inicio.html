@@ -15,16 +15,9 @@
     <!-- NAVBAR SUPERIOR -->
     <header class="navbar">
         <a href="{% url 'inicio' %}" class="brand">
-            <div class="brand-badge">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M50 8L82 22V50C82 70 50 92 50 92C50 92 18 70 18 50V22L50 8Z" fill="#002B49"
-                        stroke="#C59B27" stroke-width="5" />
-                    <circle cx="50" cy="46" r="14" fill="#C59B27" />
-                    <path
-                        d="M50 24V29M50 63V68M28 46H33M67 46H72M34.5 30.5L38 34M62 58L65.5 61.5M34.5 61.5L38 58M62 34L65.5 30.5"
-                        stroke="#FFD700" stroke-width="3" stroke-linecap="round" />
-                </svg>
-            </div>
+            <img class="brand-logo"
+                src="https://www.upbvirtual.net/upbvirtual/pluginfile.php/1/theme_adaptable/logo/1785874399/2xlogo_2.png"
+                alt="Universidad Privada Boliviana">
             <div class="brand-text">
                 <h1>Sistema de Reservas</h1>
                 <span>UPB Santa Cruz • Campus</span>
@@ -100,8 +93,8 @@
                 </div>
 
                 <div class="date-selector-group">
-<button type="button" class="btn-date" onclick="moverDia(-1)" aria-label="Día anterior">‹</button>
-<button type="button" class="btn-date" onclick="moverDia(1)" aria-label="Día siguiente">›</button>
+                    <button type="button" class="btn-date" onclick="moverDia(-1)" aria-label="Día anterior">‹</button>
+                    <button type="button" class="btn-date" onclick="moverDia(1)" aria-label="Día siguiente">›</button>
                     <a href="?fecha={{ hoy|date:'Y-m-d' }}"
                         class="btn-date {% if fecha_iso == hoy|date:'Y-m-d' %}active{% endif %}">Hoy</a>
                     <input type="date" class="input-date" value="{{ fecha_iso }}"
@@ -133,7 +126,8 @@
                         <tr>
                             <th class="hour-column">Hora</th>
                             {% for sala in salas %}
-                            <th class="room-th {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
+                            <th
+                                class="room-th {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
                                 {{ sala.nombre }}
                                 {% if sala.en_mantenimiento %}
                                 <div style="font-size: 0.65rem; color: #ef4444;">[Mantenimiento]</div>
@@ -145,14 +139,15 @@
                     <tbody>
                         {% for bloque in bloques_predefinidos %}
                         <tr data-ini="{{ bloque.inicio }}" data-fin="{{ bloque.fin }}">
-                            <td class="hour-column">{{ bloque.inicio }}<br><small style="opacity: 0.6;">{{ bloque.fin }}</small></td>
+                            <td class="hour-column">{{ bloque.inicio }}<br><small style="opacity: 0.6;">{{ bloque.fin
+                                    }}</small></td>
                             {% for sala in salas %}
                             <td>
                                 <!-- Buscar si hay reserva en esta sala y bloque -->
                                 {% for res in reservas_calendario %}
                                 {% if res.sala_nombre == sala.nombre and res.hora_inicio == bloque.inicio %}
-                                <div class="reservation-block"
-                                    style="background: {{ res.color_bg }}; border-left-color: {{ res.color_border }};"
+                                <div class="reservation-block" data-bg="{{ res.color_bg }}"
+                                    data-border="{{ res.color_border }}"
                                     title="{{ res.estudiante_nombre }} ({{ res.estudiante_codigo }})">
                                     <span class="res-time">{{ res.hora_inicio }} - {{ res.hora_fin }}</span>
                                     <div class="res-student">{{ res.estudiante_nombre }}</div>
@@ -300,8 +295,7 @@
         <div class="modal-card">
             <div class="modal-title">
                 <span>🛠️ Estado de Mantenimiento</span>
-                <button onclick="cerrarModalMantenimiento()"
-                    class="modal-close">✕</button>
+                <button onclick="cerrarModalMantenimiento()" class="modal-close">✕</button>
             </div>
             <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
                 Activa el switch para poner la sala en mantenimiento (no disponible para reservas).
@@ -483,7 +477,7 @@
                 checkbox.checked = !checkbox.checked;
             }
         }
-    
+
         function moverDia(n) {
             const d = new Date('{{ fecha_iso }}T12:00:00');
             d.setDate(d.getDate() + n);
@@ -500,6 +494,12 @@
                 if (m >= f(r.dataset.ini) && m < f(r.dataset.fin)) r.classList.add('now-row');
             });
         })();
+
+        // Colores de cada reserva (vienen del servidor)
+        document.querySelectorAll('.reservation-block[data-bg]').forEach(b => {
+            b.style.background = b.dataset.bg;
+            b.style.borderLeftColor = b.dataset.border;
+        });
     </script>
 </body>
 

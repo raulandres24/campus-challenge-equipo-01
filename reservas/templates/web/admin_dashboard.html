@@ -15,16 +15,7 @@
     <!-- NAVBAR ADMIN -->
     <header class="navbar">
         <a href="{% url 'admin_dashboard' %}" class="brand">
-            <div class="brand-badge">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M50 8L82 22V50C82 70 50 92 50 92C50 92 18 70 18 50V22L50 8Z" fill="#002B49"
-                        stroke="#C59B27" stroke-width="5" />
-                    <circle cx="50" cy="46" r="14" fill="#C59B27" />
-                    <path
-                        d="M50 24V29M50 63V68M28 46H33M67 46H72M34.5 30.5L38 34M62 58L65.5 61.5M34.5 61.5L38 58M62 34L65.5 30.5"
-                        stroke="#FFD700" stroke-width="3" stroke-linecap="round" />
-                </svg>
-            </div>
+            <img class="brand-logo" src="https://www.upbvirtual.net/upbvirtual/pluginfile.php/1/theme_adaptable/logo/1785874399/2xlogo_2.png" alt="Universidad Privada Boliviana">
             <div class="brand-text">
                 <h1>Panel de Control UPB</h1>
                 <span>Administración y Gestión de Reservas</span>
@@ -159,7 +150,9 @@
                                 <td>
                                     <div class="action-btns-group">
                                         <button type="button" class="btn-action-edit" title="Editar horario o sala"
-                                            onclick="abrirModalEditar('{{ r.id }}', '{{ r.sala.nombre }}', '{{ r.fecha|date:'Y-m-d' }}', '{{ r.hora_inicio|time:'H:i' }}', '{{ r.hora_fin|time:'H:i' }}', '{{ r.estado }}')">
+                                            data-id="{{ r.id }}" data-sala="{{ r.sala.nombre }}" data-fecha="{{ r.fecha|date:'Y-m-d' }}"
+                                            data-ini="{{ r.hora_inicio|time:'H:i' }}" data-fin="{{ r.hora_fin|time:'H:i' }}" data-estado="{{ r.estado }}"
+                                            onclick="abrirModalEditarDesde(this)">
                                             ✏️ Mover / Editar
                                         </button>
                                         <button type="button" class="btn-action-del" title="Eliminar registro"
@@ -205,7 +198,7 @@
                                 <div class="sala-name">{{ sala.nombre }}</div>
                                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
                                     Estado: <strong id="maint-text-{{ sala.id }}"
-                                        style="color: {% if sala.en_mantenimiento %}#dc2626{% else %}#16a34a{% endif %};">
+                                        class="estado-sala {% if sala.en_mantenimiento %}is-maint{% else %}is-ok{% endif %}">
                                         {% if sala.en_mantenimiento %}En Mantenimiento (Bloqueada){% else %}Habilitada{% endif %}
                                     </strong>
                                 </div>
@@ -340,6 +333,11 @@
             document.getElementById('editHoraFin').value = hFin;
             document.getElementById('editEstado').value = estado;
             document.getElementById('modalEditarReserva').style.display = 'flex';
+        }
+
+        function abrirModalEditarDesde(btn) {
+            const d = btn.dataset;
+            abrirModalEditar(d.id, d.sala, d.fecha, d.ini, d.fin, d.estado);
         }
 
         function cerrarModalEditar() {
