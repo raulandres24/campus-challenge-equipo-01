@@ -17,12 +17,14 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from proyecto.clases.horarios import minutos_a_time, parsear_horas, validar_rango_horario
 from proyecto.clases.sistema_reservas import reservar_si_es_posible
 from .models import Estudiante, Reserva, Sala
-from .permisos import es_duenio_de_reserva, obtener_info_usuario, tiene_poderes_especiales
+from .padron import buscar_en_padron
+from .permisos import es_duenio_de_reserva, estudiante_del_usuario, obtener_info_usuario, tiene_poderes_especiales
 from .agenda import armar_agenda
 from .services import ReservaRechazada, ReservaYaComenzo, inicio_de_reserva, modificar_reserva_si_esta_disponible
 
@@ -45,42 +47,52 @@ COLORES_SALAS = {
 }
 
 
-def login_view(request: HttpRequest) -> HttpResponse:
-    """Vista de inicio de sesión.
+def _destino_tras_login(request: HttpRequest, user) -> str:
+    """A dónde ir después de iniciar sesión (``next`` solo si es de este mismo sitio)."""
+    siguiente = request.GET.get("next", "")
+    if siguiente and url_has_allowed_host_and_scheme(siguiente, allowed_hosts={request.get_host()}):
+        return siguiente
+    return "admin_dashboard" if tiene_poderes_especiales(user) else "inicio"
 
-    Si el usuario tiene poderes especiales (Sergio Barrientos, Hugo Zúñiga, Raúl Vaca, Alejandro Párraga, admin),
-    se le redirige automáticamente al Panel de Control de Administrador (/admin-dashboard/).
-    Si es un estudiante regular, se le redirige al inicio público (/inicio/).
+
+def login_view(request: HttpRequest) -> HttpResponse:
+    """Inicio de sesión con dos modos.
+
+    - Estudiante: código + correo institucional, verificados contra el padrón simulado
+      (``reservas/padron.py``). Si no figura o está inactivo, no entra.
+    - Personal (docente/administradores): usuario y contraseña de Django.
     """
     if request.user.is_authenticated:
-        if tiene_poderes_especiales(request.user):
-            return redirect("admin_dashboard")
-        return redirect("inicio")
+        return redirect(_destino_tras_login(request, request.user))
 
     error_mensaje = None
-    if request.method == "POST":
-        username = request.POST.get("username", "").strip()
-        password = request.POST.get("password", "").strip()
+    modo = request.POST.get("modo", "estudiante") if request.method == "POST" else "estudiante"
 
-        user = authenticate(request, username=username, password=password)
+    if request.method == "POST" and modo == "estudiante":
+        codigo = request.POST.get("codigo", "").strip()
+        email = request.POST.get("email", "").strip()
+        persona = buscar_en_padron(codigo, email)
+        if persona is None:
+            error_mensaje = "No figuras en el padrón de la UPB con ese código y ese correo. Revisa ambos datos."
+        elif not persona["activo"]:
+            error_mensaje = "Tu registro en el padrón no está activo. Consulta en Registros de la UPB."
+        else:
+            user = authenticate(request, codigo=codigo, email=email)
+            login(request, user, backend="reservas.padron.PadronBackend")
+            return redirect(_destino_tras_login(request, user))
+
+    elif request.method == "POST":
+        user = authenticate(
+            request,
+            username=request.POST.get("username", "").strip(),
+            password=request.POST.get("password", ""),
+        )
         if user is not None:
             login(request, user)
-            next_url = request.GET.get("next")
-            if next_url:
-                return redirect(next_url)
-            if tiene_poderes_especiales(user):
-                return redirect("admin_dashboard")
-            return redirect("inicio")
-        else:
-            error_mensaje = "Usuario o contraseña incorrectos. Por favor intenta de nuevo."
+            return redirect(_destino_tras_login(request, user))
+        error_mensaje = "Usuario o contraseña incorrectos."
 
-    return render(
-        request,
-        "web/login.html",
-        {
-            "error_mensaje": error_mensaje,
-        },
-    )
+    return render(request, "web/login.html", {"error_mensaje": error_mensaje, "modo": modo})
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -117,13 +129,7 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
     )
 
     user_info = obtener_info_usuario(request.user)
-    estudiante_asociado = None
-    if request.user.first_name.strip() and request.user.last_name.strip():
-        # Coincidencia exacta (igual que es_duenio_de_reserva); antes un nombre vacío coincidía con cualquiera.
-        estudiante_asociado = Estudiante.objects.filter(
-            nombres__iexact=request.user.first_name.strip(),
-            apellidos__iexact=request.user.last_name.strip(),
-        ).first()
+    estudiante_asociado = estudiante_del_usuario(request.user)
 
     ahora = timezone.now()
     reservas_calendario = []
@@ -314,6 +320,16 @@ def api_reservar(request: HttpRequest) -> JsonResponse:
         hora_inicio = datos.get("hora_inicio", "").strip()
         hora_fin = datos.get("hora_fin", "").strip()
         fecha_str = datos.get("fecha", "").strip() or None
+
+        # Un estudiante solo reserva a su nombre: se ignora el código que venga en el formulario.
+        if not tiene_poderes_especiales(request.user):
+            propio = estudiante_del_usuario(request.user)
+            if propio is None:
+                return JsonResponse({
+                    "estado": "RECHAZADA",
+                    "mensaje": "Tu usuario no está vinculado a un estudiante. Inicia sesión con tu código y correo.",
+                }, status=403)
+            codigo_estudiante = propio.codigo_estudiante
 
         if not codigo_estudiante or not nombre_sala or not hora_inicio or not hora_fin:
             return JsonResponse({

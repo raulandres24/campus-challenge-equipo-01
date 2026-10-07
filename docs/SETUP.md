@@ -105,7 +105,9 @@ Abre <http://127.0.0.1:8000/> (también funciona en el celular: la interfaz es m
 |---|---|
 | `sbarrientos` | Docente (administrador) |
 | `rvaca`, `aparraga`, `hugozuniga770`, `admin` | Administradores del equipo |
-| `lucia.mendez`, `valeria.flores`, `daniela.castro` | Estudiantes |
+| `lucia.mendez`, `valeria.flores`, `daniela.castro` | Estudiantes (usuarios antiguos de `poblar_bd`) |
+
+Los estudiantes también entran por la pestaña **Estudiante** con su código y su correo del padrón ficticio (`datos/padron_upb.json`), por ejemplo `U-92004` y `lucia.mendez@est.upb.example`.
 
 ## 7. Pruebas (sin tocar la base real)
 

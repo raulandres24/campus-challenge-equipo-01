@@ -33,25 +33,43 @@ def tiene_poderes_especiales(user) -> bool:
     return user.username.lower() in USUARIOS_CON_PODERES
 
 
+def estudiante_del_usuario(user):
+    """Estudiante vinculado al usuario que inició sesión, o None.
+
+    1. Usuarios que entraron por el padrón: su ``username`` es su código de estudiante.
+    2. Usuarios antiguos de ``poblar_bd`` (por ejemplo ``lucia.mendez``): nombre y apellido
+       exactos y no vacíos. Antes se usaba ``first_name in nombres`` y ``"" in "Lucía"``
+       es True: un usuario sin nombre pasaba como cualquier estudiante.
+    """
+    from .models import Estudiante  # import local: evita ciclos al cargar la app
+
+    if not user or not user.is_authenticated:
+        return None
+    por_codigo = Estudiante.objects.filter(codigo_estudiante__iexact=user.username).first()
+    if por_codigo:
+        return por_codigo
+    nombre = (user.first_name or "").strip()
+    apellido = (user.last_name or "").strip()
+    if not nombre or not apellido:
+        return None
+    return Estudiante.objects.filter(nombres__iexact=nombre, apellidos__iexact=apellido).first()
+
+
 def es_duenio_de_reserva(user, reserva) -> bool:
     """True si el usuario autenticado es el estudiante dueño de la reserva.
 
-    Hoy el ``User`` de Django y el ``Estudiante`` no están enlazados, así que
-    se comparan nombres y apellidos (igual que en la vista ``inicio``), pero
-    de forma exacta y exigiendo que no estén vacíos. Antes se usaba
-    ``first_name in nombres``, y ``"" in "Lucía"`` es True: un usuario sin
-    nombre pasaba como dueño de cualquier reserva.
-
-    Cuando se enlace el login con el padrón (código de estudiante), esta es la
-    única función que hay que cambiar.
+    Primero por código (usuarios del padrón: username = código); si no, por nombre y
+    apellido exactos y no vacíos (usuarios antiguos de poblar_bd).
     """
     if not user or not user.is_authenticated:
         return False
+    estudiante = reserva.estudiante
+    if (user.username or "").strip().upper() == estudiante.codigo_estudiante.strip().upper():
+        return True
     nombre = (user.first_name or "").strip().lower()
     apellido = (user.last_name or "").strip().lower()
     if not nombre or not apellido:
         return False
-    estudiante = reserva.estudiante
     return (
         estudiante.nombres.strip().lower() == nombre
         and estudiante.apellidos.strip().lower() == apellido

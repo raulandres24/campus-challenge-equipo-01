@@ -125,7 +125,9 @@
             <div>
                 <label class="etiqueta" for="inputCodigo">Código de estudiante</label>
                 <input type="text" id="inputCodigo" class="campo" placeholder="Ej: U-92001" autocomplete="off"
-                       value="{% if estudiante_asociado %}{{ estudiante_asociado.codigo_estudiante }}{% endif %}" required>
+                       value="{% if estudiante_asociado %}{{ estudiante_asociado.codigo_estudiante }}{% endif %}" required
+                       {% if not tiene_poderes %}readonly aria-describedby="codigoAyuda"{% endif %}>
+                {% if not tiene_poderes %}<p id="codigoAyuda" class="mt-1 text-xs text-suave">Reservas a tu nombre: el código sale de tu sesión.</p>{% endif %}
                 {% if tiene_poderes %}
                 <label class="sr-only" for="selectEstudiante">Elegir estudiante</label>
                 <select id="selectEstudiante" class="campo mt-2 text-sm" onchange="if (this.value) document.getElementById('inputCodigo').value = this.value">

@@ -1,0 +1,140 @@
+{
+  "descripcion": "Padrón SIMULADO de la UPB (datos ficticios). Solo lectura. Los correos usan el dominio reservado .example, que no existe.",
+  "estudiantes": [
+    {
+      "codigo": "U-92001",
+      "nombres": "Hugo",
+      "apellidos": "Zúñiga",
+      "email": "hugo.zuniga@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92002",
+      "nombres": "Raúl",
+      "apellidos": "Vaca",
+      "email": "raul.vaca@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92003",
+      "nombres": "Alejandro",
+      "apellidos": "Párraga",
+      "email": "alejandro.parraga@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92004",
+      "nombres": "Lucía",
+      "apellidos": "Méndez",
+      "email": "lucia.mendez@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92005",
+      "nombres": "Carlos",
+      "apellidos": "Torrico",
+      "email": "carlos.torrico@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": false
+    },
+    {
+      "codigo": "U-92006",
+      "nombres": "Valeria",
+      "apellidos": "Flores",
+      "email": "valeria.flores@est.upb.example",
+      "carrera": "LIC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92007",
+      "nombres": "Sebastián",
+      "apellidos": "Gutiérrez",
+      "email": "sebastian.gutierrez@est.upb.example",
+      "carrera": "ISC",
+      "activo": false,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92008",
+      "nombres": "Daniela",
+      "apellidos": "Castro",
+      "email": "daniela.castro@est.upb.example",
+      "carrera": "LIC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92009",
+      "nombres": "Andrés",
+      "apellidos": "Romero",
+      "email": "andres.romero@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92010",
+      "nombres": "Fernanda",
+      "apellidos": "Salinas",
+      "email": "fernanda.salinas@est.upb.example",
+      "carrera": "LIC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92011",
+      "nombres": "Mateo",
+      "apellidos": "Aguilera",
+      "email": "mateo.aguilera@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92012",
+      "nombres": "Camila",
+      "apellidos": "Rojas",
+      "email": "camila.rojas@est.upb.example",
+      "carrera": "LIC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92013",
+      "nombres": "Diego",
+      "apellidos": "Villarroel",
+      "email": "diego.villarroel@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": false
+    },
+    {
+      "codigo": "U-92014",
+      "nombres": "Paula",
+      "apellidos": "Céspedes",
+      "email": "paula.cespedes@est.upb.example",
+      "carrera": "ISC",
+      "activo": true,
+      "matricula_vigente": true
+    },
+    {
+      "codigo": "U-92015",
+      "nombres": "Joaquín",
+      "apellidos": "Suárez",
+      "email": "joaquin.suarez@est.upb.example",
+      "carrera": "LIC",
+      "activo": true,
+      "matricula_vigente": true
+    }
+  ]
+}

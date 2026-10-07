@@ -19,3 +19,6 @@ __pycache__/
 db.sqlite3
 # Node (solo para compilar Tailwind)
 node_modules/
+
+# Padrón con datos reales (si alguna vez se usa): nunca se sube al repositorio público
+datos/padron_local.json
