@@ -1,0 +1,50 @@
+/*
+ * Fuente de estilos (Tailwind CSS v4). NO se sirve directamente.
+ * Se compila a reservas/static/css/tailwind.css con:  npm run css
+ * El CSS compilado sí se sube al repo, para que nadie necesite Node para correr el proyecto.
+ */
+@import "tailwindcss";
+
+/* Tailwind solo genera las clases que encuentra en estas plantillas. */
+@source "../../templates";
+
+@theme {
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* Paleta del proyecto */
+  --color-tinta: #16233a;    /* texto principal y encabezados */
+  --color-pizarra: #f3f5f8;  /* fondo de la página */
+  --color-borde: #d9dee7;    /* bordes y divisores */
+  --color-suave: #5b6578;    /* texto secundario */
+  --color-azul: #1f4e8c;     /* acciones principales */
+  --color-azul-hondo: #173b6b;
+  --color-libre: #0e7c5a;    /* sala disponible / éxito */
+  --color-aviso: #b54708;    /* en curso / advertencia */
+  --color-alerta: #b42318;   /* rechazo / error */
+}
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-pizarra text-tinta antialiased; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-azul; }
+  [x-cloak], .oculto { display: none !important; }
+}
+
+@utility campo {
+  @apply w-full rounded-lg border border-borde bg-white px-3 py-2.5 text-base text-tinta
+    placeholder:text-suave/70 focus:border-azul focus:outline-none focus:ring-2 focus:ring-azul/20;
+}
+@utility etiqueta { @apply mb-1 block text-sm font-bold text-tinta; }
+@utility boton {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold
+    transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility boton-primario { @apply boton bg-azul text-white hover:bg-azul-hondo; }
+@utility boton-secundario { @apply boton border border-borde bg-white text-tinta hover:bg-pizarra; }
+@utility boton-peligro { @apply boton border border-alerta/30 bg-white text-alerta hover:bg-alerta/5; }
+@utility tarjeta { @apply rounded-xl border border-borde bg-white; }
+
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

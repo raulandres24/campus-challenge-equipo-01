@@ -1,0 +1,40 @@
+{% comment %}
+Contenido de una celda de la agenda (una sala en un bloque horario).
+Se usa en la lista del celular y en la tabla de escritorio.
+Recibe: celda = {"sala", "bloque", "reservas", "libre"}
+{% endcomment %}
+{% for r in celda.reservas %}
+<div class="rounded-lg border border-borde border-l-4 bg-white p-2.5 text-sm" style="border-left-color: {{ r.color_border }};">
+    <p class="font-bold">{{ r.hora_inicio }}–{{ r.hora_fin }}</p>
+    <p class="truncate">{{ r.estudiante_nombre }}{% if r.es_propia %} <span class="text-azul">(tu reserva)</span>{% endif %}</p>
+    <p class="text-xs text-suave">{{ r.estudiante_codigo }}</p>
+    {% if r.puede_gestionar %}
+        {% if r.ya_comenzo %}
+        <p class="mt-1.5 text-xs font-bold text-aviso">Ya comenzó: no se puede modificar</p>
+        {% else %}
+        <div class="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" class="boton-secundario min-h-9 px-3 py-1.5 text-xs"
+                    data-id="{{ r.id }}" data-sala="{{ r.sala_nombre }}" data-fecha="{{ r.fecha }}"
+                    data-ini="{{ r.hora_inicio }}" data-fin="{{ r.hora_fin }}"
+                    onclick="abrirModificar(this)">Modificar</button>
+            <button type="button" class="boton-peligro min-h-9 px-3 py-1.5 text-xs"
+                    data-id="{{ r.id }}" data-sala="{{ r.sala_nombre }}"
+                    data-ini="{{ r.hora_inicio }}" data-fin="{{ r.hora_fin }}"
+                    onclick="cancelarDesdeBoton(this)">Cancelar</button>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% empty %}
+    {% if celda.libre %}
+    <button type="button"
+            class="flex w-full min-h-11 items-center justify-center rounded-lg border border-dashed border-libre/40 px-2 text-sm font-bold text-libre hover:bg-libre/5"
+            data-sala="{{ celda.sala.nombre }}" data-ini="{{ celda.bloque.inicio }}" data-fin="{{ celda.bloque.fin }}"
+            aria-label="Reservar {{ celda.sala.nombre }} de {{ celda.bloque.inicio }} a {{ celda.bloque.fin }}"
+            onclick="elegirEspacio(this)">
+        Reservar
+    </button>
+    {% else %}
+    <p class="flex min-h-11 items-center justify-center rounded-lg bg-pizarra px-2 text-xs text-suave">Fuera de servicio</p>
+    {% endif %}
+{% endfor %}

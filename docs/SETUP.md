@@ -99,7 +99,7 @@ python manage.py poblar_bd
 python manage.py runserver
 ```
 
-Abre <http://127.0.0.1:8000/>. Usuarios de demostración (contraseña `password`, **solo para desarrollo**):
+Abre <http://127.0.0.1:8000/> (también funciona en el celular: la interfaz es mobile-first). No necesitas Node: el CSS de Tailwind ya va compilado; ver "Interfaz" en el README si cambias clases. Usuarios de demostración (contraseña `password`, **solo para desarrollo**):
 
 | Usuario | Rol en la aplicación |
 |---|---|

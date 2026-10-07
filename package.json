@@ -1,0 +1,13 @@
+{
+  "name": "reservas-salas-upb",
+  "private": true,
+  "description": "Solo para recompilar el CSS de Tailwind. Para ejecutar el proyecto NO hace falta Node.",
+  "scripts": {
+    "css": "tailwindcss -i reservas/static/src/tailwind.css -o reservas/static/css/tailwind.css --minify",
+    "css:watch": "tailwindcss -i reservas/static/src/tailwind.css -o reservas/static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

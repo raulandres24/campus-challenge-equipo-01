@@ -5,7 +5,7 @@ Proyecto **P02 — Reservas de salas e instalaciones** de Ingeniería de Softwar
 Hoy las reservas de salas llegan por mensajes, lo que provoca cruces de horario y cancelaciones que no se reflejan a tiempo. El sistema registra salas, estudiantes y reservas, y aplica las reglas acordadas con el docente (que actúa como cliente) **antes** de confirmar una reserva.
 
 - **Estado:** incremento de las sesiones 8 y 9 (modificar una reserva). Última actualización: 07/10/2026.
-- **Tecnología:** Python 3, Django 5.2 y MongoDB (`django-mongodb-backend`), pruebas con pytest.
+- **Tecnología:** Python 3, Django 5.2 y MongoDB (`django-mongodb-backend`), Tailwind CSS (mobile-first) y pruebas con pytest.
 - **Datos:** todos los datos de demostración son ficticios.
 
 ## Integrantes
@@ -14,7 +14,7 @@ Hoy las reservas de salas llegan por mensajes, lo que provoca cruces de horario 
 |---|---|
 | Raúl Vaca | Backend: reglas de negocio, pruebas e integración |
 | Hugo Zúñiga | Arquitectura Django + MongoDB actual y pantallas (`login`, `inicio`, panel de administrador) |
-| Alejandro Párraga | Frontend: pantallas del estudiante (tarea C del plan 8-9) |
+| Alejandro Párraga | Frontend (sin disponibilidad para el incremento 8-9; la tarea C la asumió Raúl) |
 
 Docente y cliente: Ing. Sergio Barrientos.
 
@@ -33,7 +33,7 @@ flowchart LR
 
 | Capa | Dónde está en el código | Estado |
 |---|---|---|
-| FE | `reservas/templates/web/` y `reservas/static/css/estilos.css` | Hecho: login, calendario del estudiante y panel de administrador |
+| FE | `reservas/templates/web/` con Tailwind (`reservas/static/css/tailwind.css`) | Hecho: login, agenda del estudiante (con modificar reserva) y panel de administrador, adaptados a celular |
 | MW | `reservas/views.py` (vistas y APIs JSON), `reservas/services.py` (reglas), `reservas/permisos.py` | Hecho; la modificación de reservas se agregó en este incremento |
 | DB estática (padrón) | — | **Pendiente.** Hoy el login usa usuarios de Django con contraseña (ver bitácora) |
 | DB del proyecto | `reservas/models.py`: `Estudiante`, `Sala`, `Reserva` | Hecho (MongoDB) |
@@ -48,12 +48,33 @@ flowchart LR
 | RES-02 Consultar disponibilidad | Parcial: calendario por fecha y sala. Sin filtro por capacidad. |
 | RES-03 Crear reserva | Parcial: estudiante, sala, fecha y horario. Faltan los **asistentes**. |
 | RES-04 Reglas antes de confirmar | Parcial: 15 min de desalojo, sin cruces del mismo estudiante, matrícula al día, sala sin mantenimiento. Falta capacidad. |
-| RES-05 Modificar o cancelar | Cancelar: hecho. Modificar: **backend y pruebas hechos en este incremento**; la pantalla del estudiante está pendiente (tarea C). |
+| RES-05 Modificar o cancelar | Hecho: cancelar, y **modificar** con backend, pruebas y pantalla (botón "Modificar" y pregunta "¿Deseas mantenerla?"). |
 | RES-06 Bloqueos de mantenimiento | Parcial: una sala se pone o se quita de mantenimiento. No hay bloqueos por período ni se cancelan las reservas afectadas. |
 | RES-07 Corregir con motivo e historial | Pendiente. |
 | RES-08 Agenda, activas y cancelaciones | Parcial: calendario del día y registro de reservas en el panel de administrador, con filtro por estado. |
 
 Reglas aprobadas por el docente: ver [`docs/sesion-06-requisitos.md`](docs/sesion-06-requisitos.md). Modelo del flujo de modificación: [`docs/sesion-07-modelos.md`](docs/sesion-07-modelos.md). Plan del incremento: [`docs/sesion-08-09-plan.md`](docs/sesion-08-09-plan.md).
+
+## Interfaz: Tailwind CSS y diseño mobile-first
+
+**Por qué mobile-first.** La interfaz debe ser mobile-first (requisito del proyecto). Además, los estudiantes reservan desde el celular, entre clases o en el pasillo. Por eso cada pantalla se diseña primero para un ancho de unos 390 px y después se amplía:
+
+| Pantalla | Celular | Escritorio |
+|---|---|---|
+| Agenda (`inicio`) | Una sala a la vez (pestañas) con sus bloques en lista; el formulario de reserva sube desde abajo | Tabla con todas las salas y el formulario fijo a la derecha |
+| Modificar reserva | Diálogo que sube desde abajo; botones grandes (mínimo 44 px de alto) | Diálogo centrado |
+| Panel de administración | Reservas como tarjetas | Reservas en tabla |
+
+**Por qué Tailwind.** Las clases de Tailwind van en la misma plantilla, así que el diseño adaptable se escribe con prefijos (`md:`, `lg:`) sin mantener un archivo CSS aparte. Tailwind solo genera las clases que se usan, y el CSS compilado pesa unos 27 KB.
+
+**No hace falta Node para ejecutar el proyecto.** El CSS compilado (`reservas/static/css/tailwind.css`) está en el repositorio. Node solo se necesita si se cambian clases en las plantillas:
+
+```powershell
+npm install
+npm run css
+```
+
+La fuente de estilos y los colores del proyecto están en `reservas/static/src/tailwind.css`.
 
 ## Instalación
 
@@ -104,7 +125,7 @@ python -m pytest -q
 Las pruebas que usan MongoDB trabajan sobre una base aparte, `test_<MONGO_DB_NAME>`, que se crea y se borra en cada corrida: **la base real no se modifica**. Las pruebas puras corren sin MongoDB:
 
 ```powershell
-python -m pytest -q tests/test_urls.py
+python -m pytest -q tests/test_urls.py tests/test_agenda.py
 ```
 
 | Archivo | Qué prueba |
@@ -114,16 +135,19 @@ python -m pytest -q tests/test_urls.py
 | `tests/test_reglas.py` | Reglas de la versión orientada a objetos |
 | `tests/test_modificar_reserva.py` | RES-05: casos normal, borde, límite de 15 min, rechazo con la reserva intacta, reserva ya iniciada, reintento y API |
 | `tests/test_urls.py` | Botón "Salir" (cerrar sesión) |
+| `tests/test_agenda.py` | Agenda del día (reservas fuera de bloque, mantenimiento) y botón "Modificar" en la pantalla |
 
 ## Estructura
 
 ```text
 reservas_upb/     Configuración de Django (settings, URLs raíz)
-reservas/         App principal: modelos, vistas, servicios (reglas), permisos, plantillas
+reservas/         App principal: modelos, vistas, servicios (reglas), agenda, permisos, plantillas
+reservas/static/  CSS de Tailwind (src/ = fuente, css/ = compilado)
 proyecto/clases/  Funciones de negocio usadas por la API de reservar y por las pruebas anteriores
 tests/            Pruebas con pytest
 docs/             Requisitos, modelos, planes por sesión y guía de instalación
 docker-compose.yml  MongoDB local con replica set rs0
+package.json      Solo para recompilar el CSS de Tailwind
 ```
 
 ## Bitácora de decisiones
@@ -134,7 +158,7 @@ docker-compose.yml  MongoDB local con replica set rs0
 | 01/10/2026 | Reglas aprobadas por el docente: 15 min de desalojo, sin cruces del mismo estudiante, solo matrícula al día, no modificar una reserva iniciada, "¿Deseas mantenerla?" ante un cambio rechazado, gana la primera solicitud y el mantenimiento cancela reservas afectadas. | Entrevista con el cliente (sesión 6). | Aprobadas; varias siguen pendientes de implementar (ver "Qué hace hoy"). |
 | 01/10/2026 | Se conecta Django con MongoDB (`django-mongodb-backend`), en lugar de MySQL/MariaDB que menciona el encargo. | El docente confirmó que se puede usar MongoDB con Django. | **Aprobado** (07/10/2026). |
 | 02/10/2026 | **No usar el padrón real**: usar una base estática con los estudiantes del aula. | Indicación del docente (pizarra: FE → MW → DB estática → DB del proyecto). | Aprobada; implementación pendiente. Falta confirmar con el docente si se usan datos reales o ficticios (el repositorio es público). |
-| 02/10/2026 | Raúl usó Tailwind CSS en sus plantillas; Hugo hizo las suyas con CSS propio, sin Tailwind. | Dos estilos de trabajo en paralelo. | **Pendiente de charla con el equipo.** Hoy `main` usa CSS propio. |
+| 02/10/2026 | Raúl usó Tailwind CSS en sus plantillas; Hugo hizo las suyas con CSS propio, sin Tailwind. | Dos estilos de trabajo en paralelo. | Resuelto el 07/10/2026 (ver más abajo). |
 | 02/10/2026 | Hugo reescribió el proyecto a su estilo; `main` perdió el trabajo posterior de Raúl (login por padrón, roles, capacidad, Tailwind). Ese trabajo quedó en la rama local `respaldo-raul`. | Reescritura sin integración previa. | El equipo se adapta a la versión de Hugo y porta lo útil desde `respaldo-raul`. |
 | 02/10/2026 | Modelo del flujo "modificar una reserva" (RES-CU-01). | Sesión 7. | Vigente. |
 | 06/10/2026 | Alcance y plan del incremento de las sesiones 8 y 9: modificar una reserva (RES-05). | Sesiones 8-9. | Backend hecho el 07/10/2026; pantalla pendiente. |
@@ -143,6 +167,10 @@ docker-compose.yml  MongoDB local con replica set rs0
 | 07/10/2026 | `requirements.txt` pasa de UTF-16 a UTF-8 y se agrega `docker-compose.yml`; se recomienda MongoDB Atlas para quien instala por primera vez. | Instalación reproducible para el docente. | Hecho. |
 | 07/10/2026 | La modificación de reservas va en `reservas/services.py` y reutiliza las reglas de creación sin que la reserva choque consigo misma. Mientras no se aclare, rige "solo antes de que comience" (sesión 6). | Plan 8-9, tarea B. | Hecho; regla provisional. |
 | 07/10/2026 | El dueño de una reserva se reconoce por nombre y apellido **exactos** y no vacíos. | Antes, un usuario sin nombre pasaba como dueño de cualquier reserva. | Hecho; se reemplaza al enlazar el login con el padrón. |
+| 07/10/2026 | Las plantillas de Hugo pasan a **Tailwind CSS, mobile-first**; se elimina `estilos.css`. Se mantienen sus pantallas y funciones. | La interfaz debe ser mobile-first; ver "Interfaz". Decisión de Raúl. | Hecho. **Falta informar a Hugo.** |
+| 07/10/2026 | Alejandro no está disponible: Raúl hace la pantalla de modificar reserva (tarea C). | Plan 8-9. | Hecho. |
+| 07/10/2026 | La agenda muestra cada reserva en todos los bloques con los que se cruza, y "Reservar" solo aparece en bloques libres. | Antes, una reserva que no empezaba justo en un bloque no se veía, y "Disponible" aparecía también en bloques ocupados. | Hecho. |
+| 07/10/2026 | Se quitan del formulario de reserva los campos que no se enviaban (nombre, apellido, detalle). | Pedían datos que el sistema no guardaba. | Hecho. |
 
 ## Pendientes y limitaciones
 
@@ -158,7 +186,6 @@ docker-compose.yml  MongoDB local con replica set rs0
 **Trabajo pendiente**
 
 - Padrón estático y login contra el padrón (enlaza el usuario con su código de estudiante).
-- Pantalla del estudiante para modificar su reserva (tarea C).
 - Capacidad de sala y asistentes (RES-01, RES-03, RES-04).
 - Orden de llegada de solicitudes simultáneas (RES-RF-07), bloqueos por período (RES-06), historial de correcciones (RES-07) y agenda por sala (RES-08).
 - Unificar `reservas/services.py` y `proyecto/clases/`.

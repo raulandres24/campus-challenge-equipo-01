@@ -1,0 +1,92 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Salas de estudio{% endblock %} — UPB Santa Cruz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+</head>
+<body class="min-h-screen">
+{% block cuerpo %}
+    {% if user.is_authenticated %}
+    <header class="sticky top-0 z-30 border-b border-borde bg-white/95 backdrop-blur">
+        <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
+            <a href="{% url 'inicio' %}" class="flex min-w-0 items-center gap-2.5">
+                <img class="h-8 w-auto max-w-28 shrink-0 object-contain"
+                     src="https://www.upbvirtual.net/upbvirtual/pluginfile.php/1/theme_adaptable/logo/1785874399/2xlogo_2.png"
+                     alt="UPB">
+                <span class="truncate text-base font-bold leading-tight">Salas de estudio</span>
+            </a>
+
+            <nav class="hidden items-center gap-1 text-sm md:flex" aria-label="Principal">
+                <a href="{% url 'inicio' %}" class="rounded-lg px-3 py-2 font-bold hover:bg-pizarra {% if request.resolver_match.url_name == 'inicio' %}text-azul{% endif %}">Agenda</a>
+                {% if tiene_poderes %}
+                <a href="{% url 'admin_dashboard' %}" class="rounded-lg px-3 py-2 font-bold hover:bg-pizarra {% if request.resolver_match.url_name == 'admin_dashboard' %}text-azul{% endif %}">Panel</a>
+                <a href="/admin/" class="rounded-lg px-3 py-2 text-suave hover:bg-pizarra">Django admin</a>
+                {% endif %}
+                <span class="mx-2 h-6 w-px bg-borde" aria-hidden="true"></span>
+                <span class="px-1 text-suave">{{ user_info.nombre_completo }} <span class="text-xs">({{ user_info.rol }})</span></span>
+                <a href="{% url 'logout' %}" class="rounded-lg px-3 py-2 font-bold text-alerta hover:bg-alerta/5">Salir</a>
+            </nav>
+
+            <button type="button" class="boton-secundario min-h-10 px-3 md:hidden" aria-controls="menuMovil"
+                    aria-expanded="false" onclick="alternarMenu(this)">
+                Menú
+            </button>
+        </div>
+
+        <nav id="menuMovil" class="hidden border-t border-borde bg-white px-4 pb-3 md:hidden" aria-label="Principal">
+            <p class="py-3 text-sm text-suave">{{ user_info.nombre_completo }} ({{ user_info.rol }})</p>
+            <a href="{% url 'inicio' %}" class="block rounded-lg px-3 py-3 font-bold hover:bg-pizarra">Agenda</a>
+            {% if tiene_poderes %}
+            <a href="{% url 'admin_dashboard' %}" class="block rounded-lg px-3 py-3 font-bold hover:bg-pizarra">Panel de administración</a>
+            <a href="/admin/" class="block rounded-lg px-3 py-3 hover:bg-pizarra">Django admin</a>
+            {% endif %}
+            <a href="{% url 'logout' %}" class="block rounded-lg px-3 py-3 font-bold text-alerta hover:bg-alerta/5">Salir</a>
+        </nav>
+    </header>
+    {% endif %}
+
+    {% block contenido %}{% endblock %}
+{% endblock %}
+
+    <!-- Avisos breves (toasts). aria-live hace que los lectores de pantalla los lean. -->
+    <div id="avisos" class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+         aria-live="polite"></div>
+
+    <script>
+        const CSRF_TOKEN = '{{ csrf_token }}';
+
+        function alternarMenu(boton) {
+            const menu = document.getElementById('menuMovil');
+            const abierto = menu.classList.toggle('hidden') === false;
+            boton.setAttribute('aria-expanded', abierto);
+        }
+
+        function mostrarAviso(mensaje, tipo = 'exito') {
+            const aviso = document.createElement('div');
+            aviso.className = 'pointer-events-auto w-full max-w-md rounded-lg px-4 py-3 text-sm font-bold text-white shadow-lg transition-opacity '
+                + (tipo === 'exito' ? 'bg-libre' : 'bg-alerta');
+            aviso.textContent = mensaje;
+            document.getElementById('avisos').appendChild(aviso);
+            setTimeout(() => { aviso.style.opacity = '0'; setTimeout(() => aviso.remove(), 300); }, 4500);
+        }
+
+        // Envía JSON a una API del proyecto y devuelve {status, datos}.
+        async function enviarJSON(url, cuerpo) {
+            const respuesta = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                body: JSON.stringify(cuerpo),
+            });
+            let datos = {};
+            try { datos = await respuesta.json(); } catch (e) { datos = { mensaje: 'Respuesta inválida del servidor.' }; }
+            return { status: respuesta.status, datos };
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

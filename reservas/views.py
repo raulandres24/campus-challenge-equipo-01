@@ -23,7 +23,8 @@ from proyecto.clases.horarios import minutos_a_time, parsear_horas, validar_rang
 from proyecto.clases.sistema_reservas import reservar_si_es_posible
 from .models import Estudiante, Reserva, Sala
 from .permisos import es_duenio_de_reserva, obtener_info_usuario, tiene_poderes_especiales
-from .services import ReservaRechazada, ReservaYaComenzo, modificar_reserva_si_esta_disponible
+from .agenda import armar_agenda
+from .services import ReservaRechazada, ReservaYaComenzo, inicio_de_reserva, modificar_reserva_si_esta_disponible
 
 # Horarios estándar universitarios UPB
 BLOQUES_PREDEFINIDOS = [
@@ -117,12 +118,14 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
 
     user_info = obtener_info_usuario(request.user)
     estudiante_asociado = None
-    if request.user.is_authenticated:
+    if request.user.first_name.strip() and request.user.last_name.strip():
+        # Coincidencia exacta (igual que es_duenio_de_reserva); antes un nombre vacío coincidía con cualquiera.
         estudiante_asociado = Estudiante.objects.filter(
-            nombres__icontains=request.user.first_name,
-            apellidos__icontains=request.user.last_name,
+            nombres__iexact=request.user.first_name.strip(),
+            apellidos__iexact=request.user.last_name.strip(),
         ).first()
 
+    ahora = timezone.now()
     reservas_calendario = []
     for r in reservas:
         color = COLORES_SALAS.get(
@@ -139,10 +142,13 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
             "color_bg": color["bg"],
             "color_border": color["border"],
             "color_text": color["text"],
-            "es_propia": (
-                estudiante_asociado and r.estudiante_id == estudiante_asociado.id
-            ),
+            "es_propia": es_duenio_de_reserva(request.user, r),
+            "puede_gestionar": user_info["tiene_poderes"] or es_duenio_de_reserva(request.user, r),
+            "ya_comenzo": inicio_de_reserva(r) <= ahora,
+            "fecha": r.fecha.strftime("%Y-%m-%d"),
         })
+
+    filas_agenda, agenda_por_sala = armar_agenda(salas, reservas_calendario, BLOQUES_PREDEFINIDOS)
 
     estudiantes_habilitados = list(
         Estudiante.objects.filter(esta_activo=True, matricula_pagada=True).order_by("apellidos")
@@ -165,6 +171,8 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
         "sala_filtro": sala_filtro,
         "reservas": reservas,
         "reservas_calendario": reservas_calendario,
+        "filas_agenda": filas_agenda,
+        "agenda_por_sala": agenda_por_sala,
         "bloques_predefinidos": BLOQUES_PREDEFINIDOS,
         "estudiante_asociado": estudiante_asociado,
         "estudiantes_habilitados": estudiantes_habilitados,

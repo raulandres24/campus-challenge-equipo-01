@@ -17,3 +17,5 @@ __pycache__/
 
 # Base de datos SQLite (ya no la usamos, pasamos a MongoDB)
 db.sqlite3
+# Node (solo para compilar Tailwind)
+node_modules/

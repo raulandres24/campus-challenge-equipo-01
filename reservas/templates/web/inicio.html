@@ -1,506 +1,456 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
+{% extends "web/base.html" %}
+{% block titulo %}Agenda de salas{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disponibilidad y Reservas — UPB Santa Cruz</title>
-    <!-- Google Fonts -->
-    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
-</head>
+{% block contenido %}
+<main class="mx-auto max-w-6xl px-4 pb-28 pt-4 md:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-6 lg:pb-10">
 
-<body>
-
-    <!-- NAVBAR SUPERIOR -->
-    <header class="navbar">
-        <a href="{% url 'inicio' %}" class="brand">
-            <img class="brand-logo"
-                src="https://www.upbvirtual.net/upbvirtual/pluginfile.php/1/theme_adaptable/logo/1785874399/2xlogo_2.png"
-                alt="Universidad Privada Boliviana">
-            <div class="brand-text">
-                <h1>Sistema de Reservas</h1>
-                <span>UPB Santa Cruz • Campus</span>
+    <!-- ===================== AGENDA DEL DÍA ===================== -->
+    <section aria-labelledby="tituloDia">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-sm text-suave">{% if fecha_iso == hoy|date:'Y-m-d' %}Hoy{% else %}Agenda del día{% endif %}</p>
+                <h1 id="tituloDia" class="text-2xl font-bold leading-tight sm:text-3xl">{{ dia_nombre }}, {{ fecha_formateada }}</h1>
             </div>
-        </a>
-
-        <div class="nav-center">
-            <div class="date-badge">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <span>Hoy: {{ dia_nombre }}, {{ fecha_formateada }}</span>
+            <div class="flex items-center gap-2">
+                <button type="button" class="boton-secundario w-11 px-0" onclick="moverDia(-1)" aria-label="Día anterior">‹</button>
+                <a href="?fecha={{ hoy|date:'Y-m-d' }}" class="boton-secundario">Hoy</a>
+                <button type="button" class="boton-secundario w-11 px-0" onclick="moverDia(1)" aria-label="Día siguiente">›</button>
+                <label class="sr-only" for="elegirFecha">Elegir fecha</label>
+                <input id="elegirFecha" type="date" class="campo w-auto min-w-0 flex-1 sm:flex-none" value="{{ fecha_iso }}"
+                       onchange="location.href='?fecha=' + this.value">
             </div>
         </div>
 
-        <div class="nav-right">
-            <div class="user-pill">
-                <div class="user-avatar">{{ user_info.nombre_completo|slice:":1"|upper }}</div>
-                <span class="user-name">{{ user_info.nombre_completo }}</span>
-                <span class="role-tag">{{ user_info.insignia }}</span>
-            </div>
-
-            {% if tiene_poderes %}
-            <a href="/admin/" target="_blank" class="btn-admin" title="Ir al panel de administración">
-                <span>⚙️ Django Admin</span>
-            </a>
-            {% endif %}
-
-            <a href="{% url 'logout' %}" class="btn-logout">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                <span>Salir</span>
-            </a>
-        </div>
-    </header>
-
-    <!-- BARRA DE PODERES ESPECIALES -->
-    {% if tiene_poderes %}
-    <div class="admin-toolbar">
-        <div class="admin-powers-badge">
-            <span>👑 MODO PODERES ESPECIALES ACTIVO</span>
-            <span style="font-weight: 500; opacity: 0.85;">— Puedes alternar mantenimiento y cancelar cualquier
-                reserva.</span>
-        </div>
-        <div class="admin-actions">
-            <button type="button" class="btn-toggle-maint" onclick="abrirModalMantenimiento()">
-                🛠️ Gestionar Mantenimiento de Salas
+        {% if tiene_poderes %}
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-azul/20 bg-azul/5 px-4 py-3 text-sm">
+            <p>Como administrador puedes modificar o cancelar cualquier reserva.</p>
+            <button type="button" class="boton-secundario" onclick="document.getElementById('dialogoMantenimiento').showModal()">
+                Mantenimiento de salas
             </button>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <main class="main-container">
-
-        <!-- COLUMNA IZQUIERDA: CALENDARIO DE DISPONIBILIDAD -->
-        <section class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <span>Disponibilidad de Salas</span>
-                </div>
-
-                <div class="date-selector-group">
-                    <button type="button" class="btn-date" onclick="moverDia(-1)" aria-label="Día anterior">‹</button>
-                    <button type="button" class="btn-date" onclick="moverDia(1)" aria-label="Día siguiente">›</button>
-                    <a href="?fecha={{ hoy|date:'Y-m-d' }}"
-                        class="btn-date {% if fecha_iso == hoy|date:'Y-m-d' %}active{% endif %}">Hoy</a>
-                    <input type="date" class="input-date" value="{{ fecha_iso }}"
-                        onchange="location.href='?fecha=' + this.value;">
-                </div>
-            </div>
-
-            <!-- Leyenda de Salas -->
-            <div class="rooms-legend">
-                <span class="legend-title">Salas Campus:</span>
-                {% for sala in salas %}
-                <span
-                    class="room-chip {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
-                    {{ sala.nombre }}
-                    {% if sala.en_mantenimiento %}(Mantenimiento){% endif %}
-                </span>
+        <!-- Celular y tablet: una sala a la vez -->
+        <div class="mt-5 md:hidden">
+            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2" role="tablist" aria-label="Salas">
+                {% for item in agenda_por_sala %}
+                <button type="button" role="tab" id="pestana-{{ forloop.counter }}"
+                        aria-controls="panel-{{ forloop.counter }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                        class="pestana shrink-0 rounded-full border px-4 py-2 text-sm font-bold aria-selected:border-tinta aria-selected:bg-tinta aria-selected:text-white border-borde bg-white"
+                        onclick="mostrarSala({{ forloop.counter }})">
+                    {{ item.sala.nombre }}{% if item.sala.en_mantenimiento %} (mantenimiento){% endif %}
+                </button>
                 {% endfor %}
             </div>
 
-            <!-- Cuadrícula / Horario Visual -->
-            <div class="calendar-grid-wrapper">
-                <div class="timeline-header-date">
-                    <h2>{{ fecha_formateada }}</h2>
-                    <p>{{ dia_nombre }}</p>
-                </div>
-
-                <table class="schedule-table">
-                    <thead>
-                        <tr>
-                            <th class="hour-column">Hora</th>
-                            {% for sala in salas %}
-                            <th
-                                class="room-th {% if 'Alfa' in sala.nombre %}alfa{% elif 'Beta' in sala.nombre %}beta{% elif 'Gamma' in sala.nombre %}gamma{% elif 'Delta' in sala.nombre %}delta{% else %}omega{% endif %}">
-                                {{ sala.nombre }}
-                                {% if sala.en_mantenimiento %}
-                                <div style="font-size: 0.65rem; color: #ef4444;">[Mantenimiento]</div>
-                                {% endif %}
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for bloque in bloques_predefinidos %}
-                        <tr data-ini="{{ bloque.inicio }}" data-fin="{{ bloque.fin }}">
-                            <td class="hour-column">{{ bloque.inicio }}<br><small style="opacity: 0.6;">{{ bloque.fin
-                                    }}</small></td>
-                            {% for sala in salas %}
-                            <td>
-                                <!-- Buscar si hay reserva en esta sala y bloque -->
-                                {% for res in reservas_calendario %}
-                                {% if res.sala_nombre == sala.nombre and res.hora_inicio == bloque.inicio %}
-                                <div class="reservation-block" data-bg="{{ res.color_bg }}"
-                                    data-border="{{ res.color_border }}"
-                                    title="{{ res.estudiante_nombre }} ({{ res.estudiante_codigo }})">
-                                    <span class="res-time">{{ res.hora_inicio }} - {{ res.hora_fin }}</span>
-                                    <div class="res-student">{{ res.estudiante_nombre }}</div>
-                                    <div class="res-room">{{ res.estudiante_codigo }}</div>
-
-                                    {% if tiene_poderes or res.es_propia %}
-                                    <button class="res-cancel-btn" title="Cancelar Reserva"
-                                        onclick="cancelarReservaDirecta('{{ res.id }}', '{{ res.estudiante_nombre }}', '{{ res.sala_nombre }}')">
-                                        ✕
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-
-                                {% if not sala.en_mantenimiento %}
-                                <div class="empty-slot"
-                                    onclick="seleccionarSlot('{{ sala.nombre }}', '{{ bloque.inicio }}', '{{ bloque.fin }}')">
-                                    + Disponible
-                                </div>
-                                {% else %}
-                                <div style="text-align: center; color: #94a3b8; font-size: 0.72rem; padding: 0.5rem;">
-                                    Fuera de servicio
-                                </div>
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- COLUMNA DERECHA: FORMULARIO "RESERVAR PARA HOY" -->
-        <aside class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    <span>Reservar para Hoy</span>
-                </div>
-            </div>
-
-            <form class="reservation-sidebar" id="formReserva" onsubmit="enviarReserva(event)">
-                <div class="info-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    <span>Solo se pueden reservar salas para el día de hoy. Máximo 2 horas por turno. Intervalo
-                        obligatorio de 15 min de desalojo.</span>
-                </div>
-
-                <!-- Selector de Sala -->
-                <div>
-                    <label class="form-label" for="selectSala">Sala de Estudio</label>
-                    <select id="selectSala" class="input-control" required>
-                        <option value="">— Seleccionar Sala —</option>
-                        {% for sala in salas %}
-                        <option value="{{ sala.nombre }}" {% if sala.en_mantenimiento %}disabled{% endif %}>
-                            {{ sala.nombre }} {% if sala.en_mantenimiento %}(En Mantenimiento){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Nombre y Apellido -->
-                <div class="name-row">
-                    <div>
-                        <label class="form-label" for="inputNombre">Nombre</label>
-                        <input type="text" id="inputNombre" class="input-control" placeholder="Nombre"
-                            value="{{ user.first_name }}" required>
+            {% for item in agenda_por_sala %}
+            <ol id="panel-{{ forloop.counter }}" role="tabpanel" aria-labelledby="pestana-{{ forloop.counter }}"
+                class="panel-sala mt-3 space-y-2 {% if not forloop.first %}hidden{% endif %}">
+                {% for celda in item.celdas %}
+                <li class="bloque-hora flex gap-3 rounded-xl border border-borde bg-white p-3"
+                    data-ini="{{ celda.bloque.inicio }}" data-fin="{{ celda.bloque.fin }}">
+                    <div class="w-14 shrink-0 pt-0.5">
+                        <p class="font-bold">{{ celda.bloque.inicio }}</p>
+                        <p class="text-sm text-suave">{{ celda.bloque.fin }}</p>
+                        <p class="marca-ahora hidden text-xs font-bold text-azul">Ahora</p>
                     </div>
-                    <div>
-                        <label class="form-label" for="inputApellido">Apellido</label>
-                        <input type="text" id="inputApellido" class="input-control" placeholder="Apellido"
-                            value="{{ user.last_name }}" required>
-                    </div>
-                </div>
-
-                <!-- Código de Estudiante -->
-                <div>
-                    <label class="form-label" for="inputCodigo">Código de Estudiante</label>
-                    <input type="text" id="inputCodigo" class="input-control" placeholder="Ej: U-92001"
-                        value="{% if estudiante_asociado %}{{ estudiante_asociado.codigo_estudiante }}{% endif %}"
-                        required>
-
-                    {% if tiene_poderes %}
-                    <div style="margin-top: 0.35rem;">
-                        <select class="input-control" style="padding: 0.4rem; font-size: 0.78rem;"
-                            onchange="document.getElementById('inputCodigo').value = this.value; autocompletarPorSelect(this);">
-                            <option value="">⚡ Seleccionar Estudiante Rápido...</option>
-                            {% for est in estudiantes_habilitados %}
-                            <option value="{{ est.codigo_estudiante }}" data-nombres="{{ est.nombres }}"
-                                data-apellidos="{{ est.apellidos }}">
-                                {{ est.apellidos }}, {{ est.nombres }} ({{ est.codigo_estudiante }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Selector de Horarios (Pills Grid) -->
-                <div>
-                    <label class="form-label">Seleccionar Horario</label>
-                    <div class="time-slots-grid">
-                        {% for b in bloques_predefinidos %}
-                        <button type="button" class="time-slot-btn"
-                            onclick="seleccionarHorarioBtn(this, '{{ b.inicio }}', '{{ b.fin }}')">
-                            {{ b.label }}
-                        </button>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" id="horaInicio" required>
-                    <input type="hidden" id="horaFin" required>
-                </div>
-
-                <!-- Detalle de Actividad -->
-                <div>
-                    <label class="form-label" for="inputDetalle">Detalle de la Actividad</label>
-                    <textarea id="inputDetalle" class="input-control" rows="2"
-                        placeholder="Ej: Estudio para examen de software..."></textarea>
-                </div>
-
-                <button type="submit" class="btn-reserve-action" id="btnSubmitReserva">
-                    <span>Confirmar Reserva</span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </button>
-            </form>
-        </aside>
-
-    </main>
-
-    <!-- MODAL GESTIÓN DE MANTENIMIENTO (PODERES ESPECIALES) -->
-    {% if tiene_poderes %}
-    <div class="modal-overlay" id="modalMantenimiento">
-        <div class="modal-card">
-            <div class="modal-title">
-                <span>🛠️ Estado de Mantenimiento</span>
-                <button onclick="cerrarModalMantenimiento()" class="modal-close">✕</button>
-            </div>
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
-                Activa el switch para poner la sala en mantenimiento (no disponible para reservas).
-            </p>
-
-            {% for sala in salas %}
-            <div class="room-maint-item">
-                <div>
-                    <strong>{{ sala.nombre }}</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);" id="status-text-{{ sala.id }}">
-                        {% if sala.en_mantenimiento %}En Mantenimiento{% else %}Habilitada para uso{% endif %}
-                    </div>
-                </div>
-                <label class="switch-toggle">
-                    <input type="checkbox" {% if sala.en_mantenimiento %}checked{% endif %}
-                        onchange="toggleMantenimiento('{{ sala.id }}', this)">
-                    <span class="slider"></span>
-                </label>
-            </div>
+                    <div class="min-w-0 flex-1 space-y-2">{% include "web/_celda.html" %}</div>
+                </li>
+                {% endfor %}
+            </ol>
             {% endfor %}
         </div>
+
+        <!-- Escritorio: todas las salas -->
+        <div class="mt-5 hidden overflow-x-auto rounded-xl border border-borde bg-white md:block">
+            <table class="w-full table-fixed border-collapse text-left">
+                <caption class="sr-only">Agenda de salas del {{ fecha_formateada }}</caption>
+                <thead>
+                    <tr class="border-b border-borde">
+                        <th scope="col" class="w-20 px-3 py-3 text-sm text-suave">Hora</th>
+                        {% for sala in salas %}
+                        <th scope="col" class="px-2 py-3 text-sm">
+                            {{ sala.nombre }}
+                            {% if sala.en_mantenimiento %}<span class="block text-xs font-normal text-alerta">En mantenimiento</span>{% endif %}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas_agenda %}
+                    <tr class="bloque-hora border-b border-borde last:border-0" data-ini="{{ fila.bloque.inicio }}" data-fin="{{ fila.bloque.fin }}">
+                        <th scope="row" class="px-3 py-2 align-top text-sm">
+                            {{ fila.bloque.inicio }}
+                            <span class="block font-normal text-suave">{{ fila.bloque.fin }}</span>
+                            <span class="marca-ahora hidden text-xs text-azul">Ahora</span>
+                        </th>
+                        {% for celda in fila.celdas %}
+                        <td class="space-y-2 px-2 py-2 align-top">{% include "web/_celda.html" %}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===================== FORMULARIO DE RESERVA =====================
+         Celular: hoja que sube desde abajo (se abre con "Reservar").
+         Escritorio (lg): columna fija a la derecha. -->
+    <div id="fondoHoja" class="fixed inset-0 z-30 hidden bg-tinta/40 lg:hidden" onclick="cerrarHoja()"></div>
+    <aside id="hojaReserva" aria-labelledby="tituloReserva"
+           class="fixed inset-x-0 bottom-0 z-40 hidden max-h-[90vh] overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl
+                  lg:static lg:z-auto lg:block lg:max-h-none lg:self-start lg:rounded-xl lg:border lg:border-borde lg:shadow-none">
+        <div class="mb-4 flex items-start justify-between gap-3">
+            <div>
+                <h2 id="tituloReserva" class="text-lg font-bold">Reservar una sala</h2>
+                <p class="text-sm text-suave">Para el {{ fecha_formateada }}. Entre dos reservas de una sala quedan 15 min libres.</p>
+            </div>
+            <button type="button" class="boton-secundario min-h-10 px-3 lg:hidden" onclick="cerrarHoja()">Cerrar</button>
+        </div>
+
+        <form id="formReserva" class="space-y-4" onsubmit="enviarReserva(event)">
+            <div>
+                <label class="etiqueta" for="selectSala">Sala</label>
+                <select id="selectSala" class="campo" required>
+                    <option value="">Elige una sala</option>
+                    {% for sala in salas %}
+                    <option value="{{ sala.nombre }}" {% if sala.en_mantenimiento %}disabled{% endif %}>
+                        {{ sala.nombre }}{% if sala.en_mantenimiento %} (en mantenimiento){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="etiqueta" for="inputCodigo">Código de estudiante</label>
+                <input type="text" id="inputCodigo" class="campo" placeholder="Ej: U-92001" autocomplete="off"
+                       value="{% if estudiante_asociado %}{{ estudiante_asociado.codigo_estudiante }}{% endif %}" required>
+                {% if tiene_poderes %}
+                <label class="sr-only" for="selectEstudiante">Elegir estudiante</label>
+                <select id="selectEstudiante" class="campo mt-2 text-sm" onchange="if (this.value) document.getElementById('inputCodigo').value = this.value">
+                    <option value="">O elige un estudiante habilitado</option>
+                    {% for est in estudiantes_habilitados %}
+                    <option value="{{ est.codigo_estudiante }}">{{ est.apellidos }}, {{ est.nombres }} ({{ est.codigo_estudiante }})</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+
+            <fieldset>
+                <legend class="etiqueta">Horario</legend>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for b in bloques_predefinidos %}
+                    <button type="button" class="chip-horario rounded-lg border border-borde px-2 py-2.5 text-sm font-bold hover:border-azul aria-pressed:border-azul aria-pressed:bg-azul aria-pressed:text-white"
+                            aria-pressed="false" data-ini="{{ b.inicio }}" data-fin="{{ b.fin }}" onclick="elegirHorario(this)">
+                        {{ b.label }}
+                    </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="horaInicio">
+                <input type="hidden" id="horaFin">
+            </fieldset>
+
+            <button type="submit" class="boton-primario w-full" id="btnReservar">Reservar sala</button>
+        </form>
+    </aside>
+
+    <!-- Botón para abrir el formulario en celular -->
+    <div class="fixed inset-x-0 bottom-0 z-20 border-t border-borde bg-white/95 p-3 backdrop-blur lg:hidden">
+        <button type="button" class="boton-primario w-full" onclick="abrirHoja()">Reservar una sala</button>
     </div>
-    {% endif %}
+</main>
 
-    <!-- TOASTS DE NOTIFICACIÓN -->
-    <div class="toast-container" id="toastContainer"></div>
+<!-- ===================== DIÁLOGO: MODIFICAR RESERVA (RES-05 / RES-CU-01) ===================== -->
+<dialog id="dialogoModificar" aria-labelledby="tituloModificar"
+        class="m-0 mt-auto w-full max-w-none rounded-t-2xl bg-white p-0 text-tinta backdrop:bg-tinta/40 sm:m-auto sm:max-w-md sm:rounded-2xl">
+    <!-- Paso 1: elegir el nuevo horario -->
+    <form id="pasoCambio" class="space-y-4 p-5" onsubmit="enviarModificacion(event)">
+        <div>
+            <h2 id="tituloModificar" class="text-lg font-bold">Modificar reserva</h2>
+            <p class="text-sm text-suave">Reserva actual: <span id="modActual"></span>. Puedes cambiar la fecha y el horario mientras no haya comenzado.</p>
+        </div>
+        <input type="hidden" id="modId">
+        <div>
+            <label class="etiqueta" for="modFecha">Fecha</label>
+            <input type="date" id="modFecha" class="campo" required>
+        </div>
+        <fieldset>
+            <legend class="etiqueta">Horario</legend>
+            <div class="grid grid-cols-2 gap-2">
+                {% for b in bloques_predefinidos %}
+                <button type="button" class="rounded-lg border border-borde px-2 py-2 text-sm font-bold hover:border-azul"
+                        data-ini="{{ b.inicio }}" data-fin="{{ b.fin }}" onclick="usarBloqueEnModificar(this)">{{ b.label }}</button>
+                {% endfor %}
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                    <label class="etiqueta" for="modInicio">Desde</label>
+                    <input type="time" id="modInicio" class="campo" step="300" required>
+                </div>
+                <div>
+                    <label class="etiqueta" for="modFin">Hasta</label>
+                    <input type="time" id="modFin" class="campo" step="300" required>
+                </div>
+            </div>
+        </fieldset>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" class="boton-secundario" onclick="cerrarModificar()">Cerrar sin cambiar</button>
+            <button type="submit" class="boton-primario" id="btnModificar">Guardar cambio</button>
+        </div>
+    </form>
 
-    <!-- SCRIPTS JS -->
-    <script>
-        function mostrarToast(mensaje, tipo = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${tipo}`;
-            toast.innerHTML = `
-                <span style="font-size: 1.2rem;">${tipo === 'success' ? '✅' : '⚠️'}</span>
-                <div>${mensaje}</div>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
+    <!-- Paso 2 (E1): el cambio no cumple las reglas → ¿Deseas mantenerla? (RES-RF-03) -->
+    <div id="pasoRechazo" class="hidden space-y-4 p-5" role="alertdialog" aria-labelledby="tituloRechazo" aria-describedby="rechazoCausa">
+        <h2 id="tituloRechazo" class="text-lg font-bold text-alerta">No se pudo hacer el cambio</h2>
+        <p id="rechazoCausa" class="rounded-lg bg-alerta/5 p-3 text-sm"></p>
+        <p class="text-sm">Tu reserva no cambió: <strong id="rechazoOriginal"></strong>.</p>
+        <p class="text-base font-bold">¿Deseas mantenerla?</p>
+        <p class="text-xs text-suave">Si respondes "No" o presionas Esc, la reserva se cancela.</p>
+        <!-- "Sí" va primero en el código para que reciba el foco: un Enter accidental no cancela. -->
+        <div class="flex flex-col gap-2 sm:flex-row-reverse">
+            <button type="button" class="boton-primario" onclick="siMantener()">Sí, mantenerla</button>
+            <button type="button" class="boton-peligro" onclick="noMantener()">No, cancelarla</button>
+        </div>
+    </div>
 
-        function seleccionarHorarioBtn(btn, inicio, fin) {
-            document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            document.getElementById('horaInicio').value = inicio;
-            document.getElementById('horaFin').value = fin;
-        }
+    <!-- Paso 2 (E2 u otro rechazo sin pregunta): solo se informa -->
+    <div id="pasoAviso" class="hidden space-y-4 p-5" role="alertdialog" aria-labelledby="tituloAviso" aria-describedby="avisoTexto">
+        <h2 id="tituloAviso" class="text-lg font-bold text-aviso">No se puede modificar</h2>
+        <p id="avisoTexto" class="text-sm"></p>
+        <div class="flex justify-end"><button type="button" class="boton-primario" onclick="cerrarModificar()">Entendido</button></div>
+    </div>
+</dialog>
 
-        function seleccionarSlot(salaNombre, inicio, fin) {
-            document.getElementById('selectSala').value = salaNombre;
-            document.querySelectorAll('.time-slot-btn').forEach(b => {
-                if (b.innerText.includes(inicio)) {
-                    seleccionarHorarioBtn(b, inicio, fin);
-                }
-            });
-            document.getElementById('formReserva').scrollIntoView({ behavior: 'smooth' });
-        }
+{% if tiene_poderes %}
+<!-- ===================== DIÁLOGO: MANTENIMIENTO (administrador) ===================== -->
+<dialog id="dialogoMantenimiento" aria-labelledby="tituloMant"
+        class="m-0 mt-auto w-full max-w-none rounded-t-2xl bg-white p-5 text-tinta backdrop:bg-tinta/40 sm:m-auto sm:max-w-md sm:rounded-2xl">
+    <h2 id="tituloMant" class="text-lg font-bold">Mantenimiento de salas</h2>
+    <p class="mb-3 text-sm text-suave">Una sala en mantenimiento no acepta reservas nuevas.</p>
+    <ul class="divide-y divide-borde">
+        {% for sala in salas %}
+        <li class="flex items-center justify-between gap-3 py-3">
+            <label for="mant-{{ sala.id }}" class="font-bold">{{ sala.nombre }}
+                <span id="mant-texto-{{ sala.id }}" class="block text-sm font-normal text-suave">{% if sala.en_mantenimiento %}En mantenimiento{% else %}Habilitada{% endif %}</span>
+            </label>
+            <input id="mant-{{ sala.id }}" type="checkbox" class="size-6 accent-alerta" {% if sala.en_mantenimiento %}checked{% endif %}
+                   onchange="alternarMantenimiento('{{ sala.id }}', this)">
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="mt-4 flex justify-end"><button type="button" class="boton-secundario" onclick="this.closest('dialog').close(); location.reload()">Listo</button></div>
+</dialog>
+{% endif %}
+{% endblock %}
 
-        function autocompletarPorSelect(select) {
-            const option = select.options[select.selectedIndex];
-            if (option.dataset.nombres) {
-                document.getElementById('inputNombre').value = option.dataset.nombres;
-                document.getElementById('inputApellido').value = option.dataset.apellidos;
+{% block scripts %}
+<script>
+    const FECHA_VISTA = '{{ fecha_iso }}';
+    const URL_RESERVAR = '{% url "api_reservar" %}';
+    const URL_CANCELAR = '{% url "api_cancelar" %}';
+    const URL_MODIFICAR = '{% url "api_modificar_reserva" %}';
+    const URL_MANTENIMIENTO = '{% url "api_toggle_mantenimiento" %}';
+
+    // ---------- Navegación ----------
+    function moverDia(n) {
+        const d = new Date(FECHA_VISTA + 'T12:00:00');
+        d.setDate(d.getDate() + n);
+        const p = v => String(v).padStart(2, '0');
+        location.href = '?fecha=' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    function mostrarSala(n) {
+        document.querySelectorAll('.panel-sala').forEach(p => p.classList.add('hidden'));
+        document.getElementById('panel-' + n).classList.remove('hidden');
+        document.querySelectorAll('.pestana').forEach(t => t.setAttribute('aria-selected', 'false'));
+        document.getElementById('pestana-' + n).setAttribute('aria-selected', 'true');
+    }
+
+    // Marca el bloque en curso (solo si se ve el día de hoy)
+    (function () {
+        if (FECHA_VISTA !== '{{ hoy|date:"Y-m-d" }}') return;
+        const ahora = new Date(), m = ahora.getHours() * 60 + ahora.getMinutes();
+        const min = t => { const [h, mm] = t.split(':'); return +h * 60 + +mm; };
+        document.querySelectorAll('.bloque-hora').forEach(el => {
+            if (m >= min(el.dataset.ini) && m < min(el.dataset.fin)) {
+                el.classList.add('bg-azul/5', 'ring-2', 'ring-azul/30');
+                el.querySelector('.marca-ahora')?.classList.remove('hidden');
             }
+        });
+    })();
+
+    // ---------- Crear reserva ----------
+    function abrirHoja() {
+        document.getElementById('hojaReserva').classList.remove('hidden');
+        document.getElementById('fondoHoja').classList.remove('hidden');
+    }
+    function cerrarHoja() {
+        document.getElementById('hojaReserva').classList.add('hidden');
+        document.getElementById('fondoHoja').classList.add('hidden');
+    }
+
+    function elegirHorario(boton) {
+        document.querySelectorAll('.chip-horario').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        boton.setAttribute('aria-pressed', 'true');
+        document.getElementById('horaInicio').value = boton.dataset.ini;
+        document.getElementById('horaFin').value = boton.dataset.fin;
+    }
+
+    function elegirEspacio(boton) {
+        document.getElementById('selectSala').value = boton.dataset.sala;
+        const chip = [...document.querySelectorAll('.chip-horario')].find(b => b.dataset.ini === boton.dataset.ini);
+        if (chip) elegirHorario(chip);
+        if (window.matchMedia('(min-width: 1024px)').matches) {
+            document.getElementById('formReserva').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            abrirHoja();
         }
+    }
 
-        async function enviarReserva(event) {
-            event.preventDefault();
-            const btn = document.getElementById('btnSubmitReserva');
-            btn.disabled = true;
-            btn.innerText = 'Procesando...';
+    async function enviarReserva(evento) {
+        evento.preventDefault();
+        const inicio = document.getElementById('horaInicio').value;
+        const fin = document.getElementById('horaFin').value;
+        if (!inicio || !fin) { mostrarAviso('Elige un horario.', 'error'); return; }
 
-            const payload = {
+        const boton = document.getElementById('btnReservar');
+        boton.disabled = true; boton.textContent = 'Reservando…';
+        try {
+            const { datos } = await enviarJSON(URL_RESERVAR, {
                 codigo_estudiante: document.getElementById('inputCodigo').value,
                 nombre_sala: document.getElementById('selectSala').value,
-                hora_inicio: document.getElementById('horaInicio').value,
-                hora_fin: document.getElementById('horaFin').value,
-                fecha: '{{ fecha_iso }}'
-            };
-
-            if (!payload.hora_inicio || !payload.hora_fin) {
-                mostrarToast('Por favor selecciona un horario de la cuadrícula.', 'error');
-                btn.disabled = false;
-                btn.innerText = 'Confirmar Reserva';
-                return;
-            }
-
-            try {
-                const response = await fetch('{% url "api_reservar" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                if (data.estado === 'CONFIRMADA') {
-                    mostrarToast(`¡Reserva confirmada en ${data.datos.sala}!`, 'success');
-                    setTimeout(() => location.reload(), 1200);
-                } else {
-                    mostrarToast(data.mensaje, 'error');
-                    btn.disabled = false;
-                    btn.innerText = 'Confirmar Reserva';
-                }
-            } catch (err) {
-                mostrarToast('Error de comunicación con el servidor.', 'error');
-                btn.disabled = false;
-                btn.innerText = 'Confirmar Reserva';
-            }
-        }
-
-        async function cancelarReservaDirecta(reservaId, estudiante, sala) {
-            if (!confirm(`¿Estás seguro de cancelar la reserva de ${estudiante} en ${sala}?`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch('{% url "api_cancelar" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ reserva_id: reservaId })
-                });
-
-                const data = await response.json();
-                if (data.estado === 'EXITO') {
-                    mostrarToast(data.mensaje, 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    mostrarToast(data.mensaje, 'error');
-                }
-            } catch (err) {
-                mostrarToast('Error al cancelar la reserva.', 'error');
-            }
-        }
-
-        function abrirModalMantenimiento() {
-            const modal = document.getElementById('modalMantenimiento');
-            if (modal) modal.style.display = 'flex';
-        }
-
-        function cerrarModalMantenimiento() {
-            const modal = document.getElementById('modalMantenimiento');
-            if (modal) modal.style.display = 'none';
-        }
-
-        async function toggleMantenimiento(salaId, checkbox) {
-            try {
-                const response = await fetch('{% url "api_toggle_mantenimiento" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ sala_id: salaId })
-                });
-
-                const data = await response.json();
-                if (data.estado === 'EXITO') {
-                    mostrarToast(data.mensaje, 'success');
-                    const textSpan = document.getElementById(`status-text-${salaId}`);
-                    if (textSpan) {
-                        textSpan.innerText = data.en_mantenimiento ? 'En Mantenimiento' : 'Habilitada para uso';
-                    }
-                    setTimeout(() => location.reload(), 1200);
-                } else {
-                    mostrarToast(data.mensaje, 'error');
-                    checkbox.checked = !checkbox.checked;
-                }
-            } catch (err) {
-                mostrarToast('Error al modificar sala.', 'error');
-                checkbox.checked = !checkbox.checked;
-            }
-        }
-
-        function moverDia(n) {
-            const d = new Date('{{ fecha_iso }}T12:00:00');
-            d.setDate(d.getDate() + n);
-            const p = v => String(v).padStart(2, '0');
-            location.href = '?fecha=' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-        }
-
-        // Resalta el bloque horario actual (solo si se ve el día de hoy)
-        (function () {
-            if ('{{ fecha_iso }}' !== '{{ hoy|date:"Y-m-d" }}') return;
-            const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
-            const f = t => { const p = t.split(':'); return +p[0] * 60 + +p[1]; };
-            document.querySelectorAll('tr[data-ini]').forEach(r => {
-                if (m >= f(r.dataset.ini) && m < f(r.dataset.fin)) r.classList.add('now-row');
+                hora_inicio: inicio, hora_fin: fin, fecha: FECHA_VISTA,
             });
-        })();
+            if (datos.estado === 'CONFIRMADA') {
+                mostrarAviso('Sala reservada: ' + datos.datos.sala + ', ' + inicio + '–' + fin + '.');
+                setTimeout(() => location.reload(), 1200);
+                return;
+            }
+            mostrarAviso(datos.mensaje || 'No se pudo reservar.', 'error');
+        } catch (e) {
+            mostrarAviso('Sin conexión con el servidor. Intenta de nuevo.', 'error');
+        }
+        boton.disabled = false; boton.textContent = 'Reservar sala';
+    }
 
-        // Colores de cada reserva (vienen del servidor)
-        document.querySelectorAll('.reservation-block[data-bg]').forEach(b => {
-            b.style.background = b.dataset.bg;
-            b.style.borderLeftColor = b.dataset.border;
-        });
-    </script>
-</body>
+    // ---------- Cancelar ----------
+    async function cancelarReserva(id) {
+        const { datos } = await enviarJSON(URL_CANCELAR, { reserva_id: id });
+        if (datos.estado === 'EXITO') {
+            mostrarAviso(datos.mensaje);
+            setTimeout(() => location.reload(), 1000);
+            return true;
+        }
+        mostrarAviso(datos.mensaje || 'No se pudo cancelar.', 'error');
+        return false;
+    }
 
-</html>
+    function cancelarDesdeBoton(boton) {
+        const d = boton.dataset;
+        if (confirm('¿Cancelar la reserva de ' + d.sala + ', ' + d.ini + '–' + d.fin + '?')) {
+            cancelarReserva(d.id).catch(() => mostrarAviso('Sin conexión con el servidor.', 'error'));
+        }
+    }
+
+    // ---------- Modificar (RES-05 / RES-CU-01) ----------
+    const dialogo = document.getElementById('dialogoModificar');
+    let reservaEnRechazo = null;  // id de la reserva cuando se pregunta "¿Deseas mantenerla?"
+
+    function verPaso(id) {
+        ['pasoCambio', 'pasoRechazo', 'pasoAviso'].forEach(p => document.getElementById(p).classList.toggle('hidden', p !== id));
+    }
+
+    function abrirModificar(boton) {
+        const d = boton.dataset;
+        reservaEnRechazo = null;
+        document.getElementById('modId').value = d.id;
+        document.getElementById('modFecha').value = d.fecha;
+        document.getElementById('modInicio').value = d.ini;
+        document.getElementById('modFin').value = d.fin;
+        document.getElementById('modActual').textContent = d.sala + ', ' + d.fecha.split('-').reverse().join('/') + ', ' + d.ini + '–' + d.fin;
+        verPaso('pasoCambio');
+        dialogo.showModal();
+    }
+
+    function usarBloqueEnModificar(boton) {
+        document.getElementById('modInicio').value = boton.dataset.ini;
+        document.getElementById('modFin').value = boton.dataset.fin;
+    }
+
+    function cerrarModificar() { reservaEnRechazo = null; dialogo.close(); }
+
+    async function enviarModificacion(evento) {
+        evento.preventDefault();
+        const id = document.getElementById('modId').value;
+        const boton = document.getElementById('btnModificar');
+        boton.disabled = true; boton.textContent = 'Guardando…';
+        try {
+            const { status, datos } = await enviarJSON(URL_MODIFICAR, {
+                reserva_id: id,
+                fecha: document.getElementById('modFecha').value,
+                hora_inicio: document.getElementById('modInicio').value,
+                hora_fin: document.getElementById('modFin').value,
+            });
+            if (datos.estado === 'CONFIRMADA') {
+                dialogo.close();
+                mostrarAviso(datos.mensaje);
+                setTimeout(() => { location.href = '?fecha=' + datos.datos.fecha; }, 1200);
+            } else if (datos.preguntar_mantener) {
+                // E1: la original sigue igual; se pregunta si se mantiene.
+                reservaEnRechazo = id;
+                const o = datos.datos;
+                document.getElementById('rechazoCausa').textContent = datos.mensaje;
+                document.getElementById('rechazoOriginal').textContent =
+                    o.sala + ', ' + o.fecha.split('-').reverse().join('/') + ', ' + o.hora_inicio + '–' + o.hora_fin;
+                verPaso('pasoRechazo');
+                document.querySelector('#pasoRechazo .boton-primario').focus();
+            } else if (status === 400) {
+                mostrarAviso(datos.mensaje, 'error');  // datos mal escritos: se corrigen en el mismo formulario
+            } else {
+                // E2 (ya comenzó), sin permiso o reserva no encontrada
+                document.getElementById('avisoTexto').textContent = datos.mensaje;
+                verPaso('pasoAviso');
+                document.querySelector('#pasoAviso .boton-primario').focus();
+            }
+        } catch (e) {
+            mostrarAviso('Sin conexión con el servidor. Intenta de nuevo.', 'error');
+        }
+        boton.disabled = false; boton.textContent = 'Guardar cambio';
+    }
+
+    function siMantener() {
+        cerrarModificar();
+        mostrarAviso('Tu reserva se mantiene sin cambios.');
+    }
+
+    async function noMantener() {
+        const id = reservaEnRechazo;
+        cerrarModificar();
+        if (id) await cancelarReserva(id).catch(() => mostrarAviso('Sin conexión con el servidor.', 'error'));
+    }
+
+    // Esc en la pregunta "¿Deseas mantenerla?" equivale a "No" (regla acordada, provisional).
+    dialogo.addEventListener('cancel', evento => {
+        if (reservaEnRechazo) { evento.preventDefault(); noMantener(); }
+    });
+
+    {% if tiene_poderes %}
+    // ---------- Mantenimiento ----------
+    async function alternarMantenimiento(salaId, casilla) {
+        try {
+            const { datos } = await enviarJSON(URL_MANTENIMIENTO, { sala_id: salaId });
+            if (datos.estado === 'EXITO') {
+                mostrarAviso(datos.mensaje);
+                document.getElementById('mant-texto-' + salaId).textContent = datos.en_mantenimiento ? 'En mantenimiento' : 'Habilitada';
+                return;
+            }
+            mostrarAviso(datos.mensaje, 'error');
+        } catch (e) {
+            mostrarAviso('Sin conexión con el servidor.', 'error');
+        }
+        casilla.checked = !casilla.checked;
+    }
+    {% endif %}
+</script>
+{% endblock %}
