@@ -18,6 +18,7 @@ urlpatterns = [
     # APIs Públicas y de Reserva
     path("api/reservar/", views.api_reservar, name="api_reservar"),
     path("api/cancelar/", views.api_cancelar_reserva, name="api_cancelar"),
+    path("api/modificar-reserva/", views.api_modificar_reserva, name="api_modificar_reserva"),
 
     # APIs Exclusivas de Administradores con Poderes Especiales
     path("api/editar-reserva/", views.api_editar_reserva, name="api_editar_reserva"),

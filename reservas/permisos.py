@@ -33,6 +33,31 @@ def tiene_poderes_especiales(user) -> bool:
     return user.username.lower() in USUARIOS_CON_PODERES
 
 
+def es_duenio_de_reserva(user, reserva) -> bool:
+    """True si el usuario autenticado es el estudiante dueño de la reserva.
+
+    Hoy el ``User`` de Django y el ``Estudiante`` no están enlazados, así que
+    se comparan nombres y apellidos (igual que en la vista ``inicio``), pero
+    de forma exacta y exigiendo que no estén vacíos. Antes se usaba
+    ``first_name in nombres``, y ``"" in "Lucía"`` es True: un usuario sin
+    nombre pasaba como dueño de cualquier reserva.
+
+    Cuando se enlace el login con el padrón (código de estudiante), esta es la
+    única función que hay que cambiar.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    nombre = (user.first_name or "").strip().lower()
+    apellido = (user.last_name or "").strip().lower()
+    if not nombre or not apellido:
+        return False
+    estudiante = reserva.estudiante
+    return (
+        estudiante.nombres.strip().lower() == nombre
+        and estudiante.apellidos.strip().lower() == apellido
+    )
+
+
 def obtener_info_usuario(user) -> Dict[str, Any]:
     """Retorna un diccionario con los detalles de perfil, rol y poderes del usuario."""
     if not user or not user.is_authenticated:

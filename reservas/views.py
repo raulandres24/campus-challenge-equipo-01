@@ -13,6 +13,7 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -21,7 +22,8 @@ from django.views.decorators.http import require_POST
 from proyecto.clases.horarios import minutos_a_time, parsear_horas, validar_rango_horario
 from proyecto.clases.sistema_reservas import reservar_si_es_posible
 from .models import Estudiante, Reserva, Sala
-from .permisos import obtener_info_usuario, tiene_poderes_especiales
+from .permisos import es_duenio_de_reserva, obtener_info_usuario, tiene_poderes_especiales
+from .services import ReservaRechazada, ReservaYaComenzo, modificar_reserva_si_esta_disponible
 
 # Horarios estándar universitarios UPB
 BLOQUES_PREDEFINIDOS = [
@@ -395,6 +397,92 @@ def api_editar_reserva(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"estado": "RECHAZADA", "mensaje": f"Error al editar reserva: {str(e)}"}, status=400)
 
 
+def _datos_reserva(reserva: Reserva) -> dict:
+    """Representación JSON de una reserva (la usa la pantalla para actualizar la agenda)."""
+    return {
+        "id": str(reserva.id),
+        "sala": reserva.sala.nombre,
+        "fecha": reserva.fecha.strftime("%Y-%m-%d"),
+        "hora_inicio": reserva.hora_inicio.strftime("%H:%M"),
+        "hora_fin": reserva.hora_fin.strftime("%H:%M"),
+        "estado": reserva.estado,
+    }
+
+
+@require_POST
+@login_required(login_url="/login/")
+def api_modificar_reserva(request: HttpRequest) -> JsonResponse:
+    """RES-05 / RES-CU-01: el dueño (o un administrador) cambia fecha y horario de una reserva.
+
+    Entrada (JSON o formulario): ``reserva_id``, ``fecha`` (AAAA-MM-DD),
+    ``hora_inicio`` y ``hora_fin`` (HH:MM).
+
+    Respuestas:
+      - Aceptada:  {"estado": "CONFIRMADA", "mensaje", "datos": reserva ya modificada}
+      - Rechazada por reglas (E1): {"estado": "RECHAZADA", "mensaje": causa,
+        "preguntar_mantener": true, "pregunta": "¿Deseas mantenerla?",
+        "datos": reserva original sin cambios}. Si el estudiante responde
+        "No" (o Esc), la pantalla llama a /api/cancelar/ (RES-RF-03).
+      - Ya comenzó (E2) o reserva cancelada: igual, pero "preguntar_mantener": false.
+      - Datos mal escritos: estado RECHAZADA con HTTP 400. Sin permiso: HTTP 403.
+    """
+    try:
+        datos = json.loads(request.body) if request.content_type == "application/json" else request.POST
+    except ValueError:
+        datos = None
+    if not hasattr(datos, "get"):
+        return JsonResponse({"estado": "RECHAZADA", "mensaje": "La solicitud no tiene un formato válido."}, status=400)
+
+    reserva_id = str(datos.get("reserva_id", "")).strip()
+    try:
+        reserva = Reserva.objects.select_related("estudiante", "sala").filter(id=reserva_id).first() if reserva_id else None
+    except (ValueError, ValidationError):  # id con formato inválido
+        reserva = None
+    if not reserva:
+        return JsonResponse({"estado": "RECHAZADA", "mensaje": "Reserva no encontrada."}, status=404)
+
+    if not (tiene_poderes_especiales(request.user) or es_duenio_de_reserva(request.user, reserva)):
+        return JsonResponse({
+            "estado": "RECHAZADA",
+            "mensaje": "Solo el estudiante dueño de la reserva o un administrador puede modificarla.",
+        }, status=403)
+
+    try:
+        fecha = datetime.datetime.strptime(str(datos.get("fecha", "")).strip(), "%Y-%m-%d").date()
+        hora_inicio, hora_fin = parsear_horas((str(datos.get("hora_inicio", "")), str(datos.get("hora_fin", ""))))
+    except ValueError as e:
+        return JsonResponse({
+            "estado": "RECHAZADA",
+            "mensaje": f"Datos inválidos: usa fecha AAAA-MM-DD y horas HH:MM, con fin posterior al inicio. ({e})",
+        }, status=400)
+
+    try:
+        reserva = modificar_reserva_si_esta_disponible(
+            reserva=reserva, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin,
+        )
+    except ReservaRechazada as e:
+        reserva.refresh_from_db()  # lo que quedó guardado: la reserva original
+        preguntar = not isinstance(e, ReservaYaComenzo) and reserva.estado == Reserva.ESTADO_CONFIRMADA
+        respuesta = {
+            "estado": "RECHAZADA",
+            "mensaje": str(e),
+            "preguntar_mantener": preguntar,
+            "datos": _datos_reserva(reserva),
+        }
+        if preguntar:
+            respuesta["pregunta"] = "¿Deseas mantenerla?"
+        return JsonResponse(respuesta)
+
+    return JsonResponse({
+        "estado": "CONFIRMADA",
+        "mensaje": (
+            f"Reserva modificada: {reserva.sala.nombre}, {reserva.fecha:%d/%m/%Y} "
+            f"de {reserva.hora_inicio:%H:%M} a {reserva.hora_fin:%H:%M}."
+        ),
+        "datos": _datos_reserva(reserva),
+    })
+
+
 @require_POST
 @login_required(login_url="/login/")
 def api_cancelar_reserva(request: HttpRequest) -> JsonResponse:
@@ -415,7 +503,7 @@ def api_cancelar_reserva(request: HttpRequest) -> JsonResponse:
 
         es_admin = tiene_poderes_especiales(request.user)
         if not es_admin:
-            if not (request.user.first_name in reserva.estudiante.nombres and request.user.last_name in reserva.estudiante.apellidos):
+            if not es_duenio_de_reserva(request.user, reserva):
                 return JsonResponse({
                     "estado": "RECHAZADA",
                     "mensaje": "No tienes permisos para cancelar reservas de otros estudiantes.",
