@@ -13,6 +13,11 @@ from proyecto.clases.sala import Sala
 from proyecto.clases.estudiante import Estudiante
 from proyecto.clases.sistema_reservas import SistemaReservas
 
+import pytest
+
+# Este módulo usa MongoDB (SistemaReservas consulta la base antes del modo en memoria): corre sobre la base de pruebas (test_...), nunca sobre la real.
+pytestmark = pytest.mark.usefixtures("limpiar_reservas_test")
+
 
 def test_crear_reserva_exitosa_si_hay_capacidad_y_disponibilidad():
     """Valida que una reserva válida se confirme exitosamente si la sala está libre y tiene capacidad."""

@@ -1,0 +1,30 @@
+# MongoDB local con replica set "rs0" (lo exige django-mongodb-backend).
+#
+# Uso (con Docker Desktop abierto):
+#   docker compose up -d        -> levanta MongoDB e inicia el replica set solo
+#   docker compose ps           -> debe decir "healthy" en unos 20 segundos
+#   docker compose down         -> lo apaga (los datos se conservan en el volumen)
+#   docker compose down -v      -> lo apaga y BORRA los datos
+#
+# En el archivo .env usa:
+#   MONGO_URI=mongodb://localhost:27017/?replicaSet=rs0&directConnection=true
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Si el replica set no existe todavía, lo crea; si ya existe, solo responde "ok".
+      test: >
+        mongosh --quiet --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  mongo-data:

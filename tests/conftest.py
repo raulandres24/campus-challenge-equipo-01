@@ -2,6 +2,16 @@
 tests/conftest.py
 =================
 Configuración global de pytest y fixtures para inicializar Django y MongoDB.
+
+Base de datos de pruebas (exigencia del encargo: "probar sin modificar una
+base de datos real"):
+
+- Las pruebas que usan MongoDB piden el fixture ``bd_de_prueba``. Este crea
+  una base aparte llamada ``test_<MONGO_DB_NAME>`` (por ejemplo
+  ``test_reservas_upb``), le aplica las migraciones y la borra al terminar.
+  La base real (``reservas_upb``) no se lee ni se modifica.
+- Las pruebas puras (horarios, URLs, reglas sin base de datos) no piden ese
+  fixture y corren aunque MongoDB esté apagado.
 """
 
 import os
@@ -12,7 +22,23 @@ import pytest
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "reservas_upb.settings")
 django.setup()
 
+from django.db import connection
+
 from reservas.models import Estudiante, Reserva, Sala
+
+
+@pytest.fixture(scope="session")
+def bd_de_prueba():
+    """Crea la base ``test_...`` una vez por corrida y la elimina al final."""
+    nombre_real = connection.settings_dict["NAME"]
+    connection.creation.create_test_db(verbosity=0, autoclobber=True, keepdb=False)
+    nombre_prueba = connection.settings_dict["NAME"]
+    # Freno de seguridad: nunca correr pruebas contra la base real.
+    assert nombre_prueba != nombre_real and nombre_prueba.startswith("test_"), (
+        f"Las pruebas iban a usar la base '{nombre_prueba}'. Se detienen por seguridad."
+    )
+    yield nombre_prueba
+    connection.creation.destroy_test_db(nombre_real, verbosity=0)
 
 
 def _limpiar_datos_test():
@@ -38,16 +64,20 @@ def _limpiar_datos_test():
         Sala.objects.filter(id__in=test_sala_ids).delete()
 
 
-@pytest.fixture(autouse=True)
-def limpiar_reservas_test():
-    """Fixture automática que limpia las reservas de test antes y después de cada prueba."""
+@pytest.fixture
+def limpiar_reservas_test(bd_de_prueba):
+    """Limpia los registros de prueba antes y después de cada prueba que usa MongoDB.
+
+    Ya no es automática para todas las pruebas: la piden los módulos que usan
+    la base (con ``pytestmark``) para que las pruebas puras no necesiten MongoDB.
+    """
     _limpiar_datos_test()
     yield
     _limpiar_datos_test()
 
 
 @pytest.fixture
-def estudiante_habilitado_db():
+def estudiante_habilitado_db(limpiar_reservas_test):
     """Estudiante activo y con matrícula pagada en MongoDB."""
     estudiante, _ = Estudiante.objects.get_or_create(
         codigo_estudiante="TEST-E01",
@@ -65,7 +95,7 @@ def estudiante_habilitado_db():
 
 
 @pytest.fixture
-def estudiante_inactivo_db():
+def estudiante_inactivo_db(limpiar_reservas_test):
     """Estudiante inactivo en MongoDB."""
     estudiante, _ = Estudiante.objects.get_or_create(
         codigo_estudiante="TEST-E02",
@@ -83,7 +113,7 @@ def estudiante_inactivo_db():
 
 
 @pytest.fixture
-def estudiante_sin_matricula_db():
+def estudiante_sin_matricula_db(limpiar_reservas_test):
     """Estudiante sin matrícula pagada en MongoDB."""
     estudiante, _ = Estudiante.objects.get_or_create(
         codigo_estudiante="TEST-E03",
@@ -101,7 +131,7 @@ def estudiante_sin_matricula_db():
 
 
 @pytest.fixture
-def sala_disponible_db():
+def sala_disponible_db(limpiar_reservas_test):
     """Sala habilitada y sin mantenimiento en MongoDB."""
     sala, _ = Sala.objects.get_or_create(
         nombre="Test Sala Alfa",
@@ -113,7 +143,7 @@ def sala_disponible_db():
 
 
 @pytest.fixture
-def sala_mantenimiento_db():
+def sala_mantenimiento_db(limpiar_reservas_test):
     """Sala en mantenimiento en MongoDB."""
     sala, _ = Sala.objects.get_or_create(
         nombre="Test Sala Mantenimiento",

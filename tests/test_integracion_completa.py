@@ -16,6 +16,9 @@ from proyecto.clases import (
 )
 from reservas.models import Estudiante, Reserva, Sala
 
+# Este módulo usa MongoDB: corre sobre la base de pruebas (test_...), nunca sobre la real.
+pytestmark = pytest.mark.usefixtures("limpiar_reservas_test")
+
 
 # ==============================================================================
 # 10 Pruebas de Integración Multi-función (Validación en MongoDB)

@@ -26,6 +26,9 @@ from proyecto.clases import (
 )
 from reservas.models import Reserva
 
+# Este módulo usa MongoDB: corre sobre la base de pruebas (test_...), nunca sobre la real.
+pytestmark = pytest.mark.usefixtures("limpiar_reservas_test")
+
 
 # ==============================================================================
 # 1. Pruebas aisladas para módulo: horarios.py
