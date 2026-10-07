@@ -132,7 +132,7 @@ docker-compose.yml  MongoDB local con replica set rs0
 |---|---|---|---|
 | 30/09/2026 y 01/10/2026 | Raúl pidió al docente acceso al padrón de estudiantes de la UPB. | Validar que quien reserva existe y tiene matrícula vigente. | Respondida el 02/10/2026 (fila siguiente). |
 | 01/10/2026 | Reglas aprobadas por el docente: 15 min de desalojo, sin cruces del mismo estudiante, solo matrícula al día, no modificar una reserva iniciada, "¿Deseas mantenerla?" ante un cambio rechazado, gana la primera solicitud y el mantenimiento cancela reservas afectadas. | Entrevista con el cliente (sesión 6). | Aprobadas; varias siguen pendientes de implementar (ver "Qué hace hoy"). |
-| 01/10/2026 | Se conecta Django con MongoDB (`django-mongodb-backend`), en lugar de MySQL/MariaDB que menciona el encargo. | Por completar. | Vigente en el código. **Por confirmar** la aprobación del docente. |
+| 01/10/2026 | Se conecta Django con MongoDB (`django-mongodb-backend`), en lugar de MySQL/MariaDB que menciona el encargo. | El docente confirmó que se puede usar MongoDB con Django. | **Aprobado** (07/10/2026). |
 | 02/10/2026 | **No usar el padrón real**: usar una base estática con los estudiantes del aula. | Indicación del docente (pizarra: FE → MW → DB estática → DB del proyecto). | Aprobada; implementación pendiente. Falta confirmar con el docente si se usan datos reales o ficticios (el repositorio es público). |
 | 02/10/2026 | Raúl usó Tailwind CSS en sus plantillas; Hugo hizo las suyas con CSS propio, sin Tailwind. | Dos estilos de trabajo en paralelo. | **Pendiente de charla con el equipo.** Hoy `main` usa CSS propio. |
 | 02/10/2026 | Hugo reescribió el proyecto a su estilo; `main` perdió el trabajo posterior de Raúl (login por padrón, roles, capacidad, Tailwind). Ese trabajo quedó en la rama local `respaldo-raul`. | Reescritura sin integración previa. | El equipo se adapta a la versión de Hugo y porta lo útil desde `respaldo-raul`. |
@@ -169,7 +169,3 @@ docker-compose.yml  MongoDB local con replica set rs0
 - Hoy un estudiante puede escribir el código de otro en el formulario de reserva; se corrige al enlazar el login con el padrón.
 - `api_editar_reserva` (administrador) cambia reservas sin validar reglas.
 - Las contraseñas de demostración (`password`) y la `SECRET_KEY` por defecto son solo para desarrollo.
-
-## Asistencia utilizada
-
-Parte del código, las pruebas y la documentación del 07/10/2026 se prepararon con asistencia de IA (Claude). Raúl los revisó, aplicó y subió al repositorio.
