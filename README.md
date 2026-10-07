@@ -185,47 +185,59 @@ package.json      Solo para recompilar el CSS de Tailwind
 
 ## Bitácora de decisiones
 
-| Fecha | Decisión | Motivo | Estado |
-|---|---|---|---|
-| 30/09/2026 y 01/10/2026 | Raúl pidió al docente acceso al padrón de estudiantes de la UPB. | Validar que quien reserva existe y tiene matrícula vigente. | Respondida el 02/10/2026 (fila siguiente). |
-| 01/10/2026 | Reglas aprobadas por el docente: 15 min de desalojo, sin cruces del mismo estudiante, solo matrícula al día, no modificar una reserva iniciada, "¿Deseas mantenerla?" ante un cambio rechazado, gana la primera solicitud y el mantenimiento cancela reservas afectadas. | Entrevista con el cliente (sesión 6). | Aprobadas; varias siguen pendientes de implementar (ver "Qué hace hoy"). |
-| 01/10/2026 | Se conecta Django con MongoDB (`django-mongodb-backend`), en lugar de MySQL/MariaDB que menciona el encargo. | El docente confirmó que se puede usar MongoDB con Django. | **Aprobado** (07/10/2026). |
-| 02/10/2026 | **No usar el padrón real**: usar una base estática con los estudiantes del aula. | Indicación del docente (pizarra: FE → MW → DB estática → DB del proyecto). | Hecho el 07/10/2026 (ver más abajo). |
-| 02/10/2026 | Raúl usó Tailwind CSS en sus plantillas; Hugo hizo las suyas con CSS propio, sin Tailwind. | Dos estilos de trabajo en paralelo. | Resuelto el 07/10/2026 (ver más abajo). |
-| 02/10/2026 | Hugo reescribió el proyecto a su estilo; `main` perdió el trabajo posterior de Raúl (login por padrón, roles, capacidad, Tailwind). Ese trabajo quedó en la rama local `respaldo-raul`. | Reescritura sin integración previa. | El equipo se adapta a la versión de Hugo y porta lo útil desde `respaldo-raul`. |
-| 02/10/2026 | Modelo del flujo "modificar una reserva" (RES-CU-01). | Sesión 7. | Vigente. |
-| 06/10/2026 | Alcance y plan del incremento de las sesiones 8 y 9: modificar una reserva (RES-05). | Sesiones 8-9. | Backend hecho el 07/10/2026; pantalla pendiente. |
-| 07/10/2026 | Arreglo del botón "Salir": se quitó `django.contrib.auth.urls`, cuyos nombres `login` y `logout` tapaban a los del proyecto. | El enlace llevaba a `/accounts/logout/`, que solo acepta POST (error 405). | Hecho. |
-| 07/10/2026 | Las pruebas usan una base aparte (`test_...`) que se borra al terminar. | El encargo pide probar sin modificar una base real. | Hecho. |
-| 07/10/2026 | `requirements.txt` pasa de UTF-16 a UTF-8 y se agrega `docker-compose.yml`; se recomienda MongoDB Atlas para quien instala por primera vez. | Instalación reproducible para el docente. | Hecho. |
-| 07/10/2026 | La modificación de reservas va en `reservas/services.py` y reutiliza las reglas de creación sin que la reserva choque consigo misma. Mientras no se aclare, rige "solo antes de que comience" (sesión 6). | Plan 8-9, tarea B. | Hecho; regla provisional. |
-| 07/10/2026 | El dueño de una reserva se reconoce por nombre y apellido **exactos** y no vacíos. | Antes, un usuario sin nombre pasaba como dueño de cualquier reserva. | Hecho; se reemplaza al enlazar el login con el padrón. |
-| 07/10/2026 | Las plantillas de Hugo pasan a **Tailwind CSS, mobile-first**; se elimina `estilos.css`. Se mantienen sus pantallas y funciones. | La interfaz debe ser mobile-first; ver "Interfaz". Decisión de Raúl. | Hecho. **Falta informar a Hugo.** |
-| 07/10/2026 | Alejandro no está disponible: Raúl hace la pantalla de modificar reserva (tarea C). | Plan 8-9. | Hecho. |
-| 07/10/2026 | La agenda muestra cada reserva en todos los bloques con los que se cruza, y "Reservar" solo aparece en bloques libres. | Antes, una reserva que no empezaba justo en un bloque no se veía, y "Disponible" aparecía también en bloques ocupados. | Hecho. |
-| 07/10/2026 | Se quitan del formulario de reserva los campos que no se enviaban (nombre, apellido, detalle). | Pedían datos que el sistema no guardaba. | Hecho. |
-| 07/10/2026 | Padrón simulado con **15 estudiantes ficticios** en `datos/padron_upb.json` (solo lectura). | El encargo pide datos ficticios y el repositorio es público. | Hecho; ampliado a 19 personas con rol, nivel y contraseña (ver las filas siguientes). |
-| 07/10/2026 | Login de estudiante con **código + correo institucional** contra el padrón; el docente y los administradores siguen con usuario y contraseña. | Confirma que la persona existe y está activa, y enlaza la sesión con su código. | Hecho. **Pendiente de charla:** cualquiera que conozca el código y el correo de otro puede entrar; evaluar agregar contraseña o verificación. |
-| 07/10/2026 | La matrícula vigente se toma del padrón. | Responde de dónde sale el dato de RES-RF-05 (pregunta abierta de la sesión 6). | Hecho. |
-| 07/10/2026 | Un estudiante solo reserva a su nombre: el código sale de su sesión. | Antes se podía escribir el código de otro estudiante. | Hecho. |
-| 07/10/2026 | El campo `carrera` del padrón ("ISC", "LIC" en la pizarra) es un ejemplo del docente para registrar, si se quiere, de qué carrera son quienes reservan. | Pizarra del docente. | En el padrón; **todavía no se usa** en reservas ni reportes. |
-| 07/10/2026 | **Un solo inicio de sesión** (código + correo + contraseña) para estudiantes, docente y administradores; el rol sale del padrón. Se quitan las pestañas "Estudiante" y "Docente o admin". | Decisión de Raúl: cada persona tiene código y correo propios, y un acceso aparte para el personal era una puerta más. | Hecho. |
-| 07/10/2026 | La contraseña se pide a **todos** y el padrón guarda solo su hash. Los mensajes de error no dicen cuál de los tres datos falló. | Con código y correo solos, quien los conociera (no son secretos) entraría como administrador. | Hecho. **Falta**: bloqueo por intentos fallidos y recuperación de contraseña. |
-| 07/10/2026 | Códigos de **5 dígitos** (por ejemplo, `94210`) en lugar de `U-92004`. | Así son los códigos de la UPB. Los del padrón son inventados. | Hecho. |
-| 07/10/2026 | Salas **B, C, D, F, H y J** para pregrado y **A y E** exclusivas de postgrado y doctorado; cada estudiante tiene un `nivel`. Reemplazan a "Sala Alfa", "Beta", etc. | Decisión de Raúl según el campus. | Hecho. Postgrado **solo** en A y E por ahora; **se le preguntará al docente**. |
+Cada fila dice qué se decidió, por qué, cómo va y **qué respondió el docente y cuándo**. La última columna evita confundir respuestas cuando varias llegan el mismo día. «—» significa que la decisión fue del equipo y no dependió de una respuesta del docente.
+
+| Fecha | Decisión | Motivo | Estado | Respuesta del docente (fecha y texto) |
+|---|---|---|---|---|
+| 30/09/2026 y 01/10/2026 | Raúl pidió al docente acceso al padrón de estudiantes de la UPB. | Validar que quien reserva existe y tiene matrícula vigente. | Respondida el 02/10/2026. | Respuesta dada el 02/10/2026: «No usar el padrón real: usar una base estática con los estudiantes del aula». |
+| 01/10/2026 | Reglas aprobadas por el docente: 15 min de desalojo, sin cruces del mismo estudiante, solo matrícula al día, no modificar una reserva iniciada, "¿Deseas mantenerla?" ante un cambio rechazado, gana la primera solicitud y el mantenimiento cancela reservas afectadas. | Entrevista con el cliente (sesión 6). | Aprobadas; varias siguen pendientes de implementar (ver "Qué hace hoy"). | Respuesta dada el 01/10/2026 (entrevista, sesión 6): las reglas de la columna Decisión. |
+| 01/10/2026 | Se conecta Django con MongoDB (`django-mongodb-backend`), en lugar de MySQL/MariaDB que menciona el encargo. | El docente confirmó que se puede usar MongoDB con Django. | **Aprobado** (07/10/2026). | Respuesta dada el 07/10/2026: «Sí se puede usar MongoDB junto con Django». |
+| 02/10/2026 | **No usar el padrón real**: usar una base estática con los estudiantes del aula. | Indicación del docente (pizarra: FE → MW → DB estática → DB del proyecto). | Hecho el 07/10/2026 (ver más abajo). | Respuesta dada el 02/10/2026 (pizarra): el recorrido FE → MW → DB estática → DB del proyecto. |
+| 02/10/2026 | Raúl usó Tailwind CSS en sus plantillas; Hugo hizo las suyas con CSS propio, sin Tailwind. | Dos estilos de trabajo en paralelo. | Resuelto el 07/10/2026 (ver más abajo). | — |
+| 02/10/2026 | Hugo reescribió el proyecto a su estilo; `main` perdió el trabajo posterior de Raúl (login por padrón, roles, capacidad, Tailwind). Ese trabajo quedó en la rama local `respaldo-raul`. | Reescritura sin integración previa. | El equipo se adapta a la versión de Hugo y porta lo útil desde `respaldo-raul`. | — |
+| 02/10/2026 | Modelo del flujo "modificar una reserva" (RES-CU-01). | Sesión 7. | Vigente. | — |
+| 06/10/2026 | Alcance y plan del incremento de las sesiones 8 y 9: modificar una reserva (RES-05). | Sesiones 8-9. | Hecho el 07/10/2026 (backend y pantalla). | — |
+| 07/10/2026 | Arreglo del botón "Salir": se quitó `django.contrib.auth.urls`, cuyos nombres `login` y `logout` tapaban a los del proyecto. | El enlace llevaba a `/accounts/logout/`, que solo acepta POST (error 405). | Hecho. | — |
+| 07/10/2026 | Las pruebas usan una base aparte (`test_...`) que se borra al terminar. | El encargo pide probar sin modificar una base real. | Hecho. | — |
+| 07/10/2026 | `requirements.txt` pasa de UTF-16 a UTF-8 y se agrega `docker-compose.yml`; se recomienda MongoDB Atlas para quien instala por primera vez. | Instalación reproducible para el docente. | Hecho. | — |
+| 07/10/2026 | La modificación de reservas va en `reservas/services.py` y reutiliza las reglas de creación sin que la reserva choque consigo misma. Mientras no se aclare, rige "solo antes de que comience" (sesión 6). | Plan 8-9, tarea B. | Hecho; regla provisional. | — |
+| 07/10/2026 | El dueño de una reserva se reconoce por nombre y apellido **exactos** y no vacíos. | Antes, un usuario sin nombre pasaba como dueño de cualquier reserva. | Hecho; se reemplaza al enlazar el login con el padrón. | — |
+| 07/10/2026 | Las plantillas de Hugo pasan a **Tailwind CSS, mobile-first**; se elimina `estilos.css`. Se mantienen sus pantallas y funciones. | La interfaz debe ser mobile-first; ver "Interfaz". Decisión de Raúl. | Hecho. **Falta informar a Hugo.** | — |
+| 07/10/2026 | Alejandro no está disponible: Raúl hace la pantalla de modificar reserva (tarea C). | Plan 8-9. | Hecho. | — |
+| 07/10/2026 | La agenda muestra cada reserva en todos los bloques con los que se cruza, y "Reservar" solo aparece en bloques libres. | Antes, una reserva que no empezaba justo en un bloque no se veía, y "Disponible" aparecía también en bloques ocupados. | Hecho. | — |
+| 07/10/2026 | Se quitan del formulario de reserva los campos que no se enviaban (nombre, apellido, detalle). | Pedían datos que el sistema no guardaba. | Hecho. | — |
+| 07/10/2026 | Padrón simulado con **15 estudiantes ficticios** en `datos/padron_upb.json` (solo lectura). | El encargo pide datos ficticios y el repositorio es público. | Hecho; ampliado a 19 personas con rol, nivel y contraseña (ver las filas siguientes). | — |
+| 07/10/2026 | Login de estudiante con **código + correo institucional** contra el padrón; el docente y los administradores siguen con usuario y contraseña. | Confirma que la persona existe y está activa, y enlaza la sesión con su código. | Reemplazado el 07/10/2026 por el inicio de sesión único con contraseña (ver las filas siguientes). | — |
+| 07/10/2026 | La matrícula vigente se toma del padrón. | Responde de dónde sale el dato de RES-RF-05 (pregunta abierta de la sesión 6). | Hecho. | — |
+| 07/10/2026 | Un estudiante solo reserva a su nombre: el código sale de su sesión. | Antes se podía escribir el código de otro estudiante. | Hecho. | — |
+| 07/10/2026 | El campo `carrera` del padrón ("ISC", "LIC" en la pizarra) es un ejemplo del docente para registrar, si se quiere, de qué carrera son quienes reservan. | Pizarra del docente. | En el padrón; **todavía no se usa** en reservas ni reportes. | Ejemplo dado por el docente en la pizarra (ISC, LIC); no se registró la fecha. |
+| 07/10/2026 | **Un solo inicio de sesión** (código + correo + contraseña) para estudiantes, docente y administradores; el rol sale del padrón. Se quitan las pestañas "Estudiante" y "Docente o admin". | Decisión de Raúl: cada persona tiene código y correo propios, y un acceso aparte para el personal era una puerta más. | Hecho. | — |
+| 07/10/2026 | La contraseña se pide a **todos** y el padrón guarda solo su hash. Los mensajes de error no dicen cuál de los tres datos falló. | Con código y correo solos, quien los conociera (no son secretos) entraría como administrador. | Hecho. **Falta**: bloqueo por intentos fallidos y recuperación de contraseña. | — |
+| 07/10/2026 | Códigos de **5 dígitos** (por ejemplo, `94210`) en lugar de `U-92004`. | Así son los códigos de la UPB. Los del padrón son inventados. | Hecho. | — |
+| 07/10/2026 | Salas **B, C, D, F, H y J** para pregrado y **A y E** exclusivas de postgrado y doctorado; cada estudiante tiene un `nivel`. Reemplazan a "Sala Alfa", "Beta", etc. | Decisión de Raúl según el campus. | Hecho. Postgrado **solo** en A y E por ahora; **se le preguntará al docente**. | — |
+| 07/10/2026 | El recorrido de la pizarra (FE → MW → DB estática → DB del proyecto) es **solo del registro**. Al **iniciar sesión** el recorrido es FE → MW → DB del proyecto, porque la persona ya está registrada. | Aclaración del docente: el padrón se consulta una vez, al registrarse. | Pendiente (parche 10). | Respuesta dada el 07/10/2026: «El recorrido es solo del registro; el de iniciar sesión sería FE → MW → DB del proyecto porque ya estaría registrado». |
+| 07/10/2026 | Postgrado y doctorado ya tienen código pero hoy reservan la sala **en persona**: se automatiza su reserva en el sistema (salas A y E). | Ahorrar tiempo: el docente la considera clave. | Hecho: ya reservan A y E desde el sistema (parche 08). Falta la regla de anticipación (parche 11). | Indicación dada el 07/10/2026: «Automatizar eso en nuestro proyecto es clave para ahorrar tiempo». |
+| 07/10/2026 | **Anticipación para reservar.** Postgrado y doctorado: hasta 2 días de clase adelante, sin importar la hora (lunes → hasta el miércoles; viernes → hasta el martes; sábado y domingo no hay clases). Pregrado: desde las 18:00 reserva el día siguiente (lunes a las 18:00 → martes todo el día). | Regla del docente. Reemplaza dos versiones anteriores: «24 horas antes» y «desde las 21:00». | Pendiente (parche 11). | Respuesta dada el 07/10/2026: «Del lunes, no importa la hora, puede reservar hasta el miércoles todo el día; si reserva el viernes, hasta el martes». Para pregrado cambió la hora de las 21:00 a las 18:00. |
+
 
 ## Pendientes y limitaciones
 
 **Preguntas abiertas al docente**
 
-- ¿Sigue vigente "modificar hasta 10 minutos después de crearla" (sesión 4) o la reemplaza "hasta que empiece" (sesión 6)?
-- Si el estudiante presiona Esc por error en "¿Deseas mantenerla?", ¿pierde la reserva?
-- ¿Se acepta una reserva con asistentes igual a la capacidad?
-- ¿Se puede cancelar una reserva ya iniciada? ¿Se puede mover una reserva a un horario pasado?
-- ¿El aviso de mantenimiento es por correo o por WhatsApp? (El encargo no exige enviar mensajes reales.)
-- ¿Postgrado y doctorado pueden reservar, además de A y E, las salas de pregrado? (Hoy no.)
-- ¿Se registra la carrera de quien reserva (campo `carrera` del padrón)? ¿Para qué reporte?
-- En la pizarra, "Reserva 10:00 / llega 10 am / 11 am" con `req` y `log`: ¿"llega" es la solicitud o el estudiante a la sala?
+Cuando el docente responda, se completa la columna Respuesta con la fecha y el texto, y la decisión pasa a la bitácora con la misma respuesta.
+
+| N.º | Pregunta | Situación hoy | Respuesta (fecha y texto) |
+|---|---|---|---|
+| P1 | ¿Sigue vigente «modificar hasta 10 minutos después de crearla» (sesión 4) o la reemplaza «hasta que empiece» (sesión 6)? | Hoy rige «hasta que empiece». | Sin respuesta |
+| P2 | Si el estudiante presiona Esc por error en «¿Deseas mantenerla?», ¿pierde la reserva? | Hoy Esc equivale a «No» y cancela la reserva. | Sin respuesta |
+| P3 | ¿Se acepta una reserva con asistentes igual a la capacidad? | Aún no hay capacidad ni asistentes. | Sin respuesta |
+| P4 | ¿Se puede cancelar una reserva ya iniciada? ¿Se puede mover una reserva a un horario pasado? | Hoy no se modifica una reserva iniciada. | Sin respuesta |
+| P5 | ¿El aviso de mantenimiento es por correo o por WhatsApp? | El encargo no exige enviar mensajes reales. | Sin respuesta |
+| P6 | ¿Postgrado y doctorado pueden reservar, además de A y E, las salas de pregrado? | Hoy no. | Sin respuesta |
+| P7 | ¿Se registra la carrera de quien reserva (campo `carrera` del padrón)? ¿Para qué reporte? | Hoy el campo existe pero no se usa. | Sin respuesta |
+| P8 | En la pizarra, «Reserva 10:00 / llega 10 am / 11 am» con `req` y `log`: ¿«llega» es la solicitud o el estudiante a la sala? | Sin interpretar todavía. | Sin respuesta |
+| P9 | ¿Se pueden reservar sábado y domingo? (No hay clases.) | Hoy no hay bloqueo de fines de semana. | Sin respuesta |
+| P10 | ¿Los administradores y el docente quedan fuera de la regla de anticipación? | Se supuso que sí: gestionan reservas de otros. | Sin respuesta |
 
 **Trabajo pendiente**
 
