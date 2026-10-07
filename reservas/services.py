@@ -20,6 +20,7 @@ from typing import Optional
 from django.utils import timezone
 
 from .models import Estudiante, Reserva, Sala
+from .niveles import mensaje_sala_no_permitida, nivel_puede_usar_sala
 
 
 # ---------------------------------------------------------------------------
@@ -28,6 +29,10 @@ from .models import Estudiante, Reserva, Sala
 
 class ReservaRechazada(Exception):
     """Se lanza cuando una regla de negocio impide crear o modificar la reserva."""
+
+
+class SalaNoPermitida(ReservaRechazada):
+    """El nivel académico del estudiante no puede usar esa sala (A y E: postgrado y doctorado)."""
 
 
 class ReservaYaComenzo(ReservaRechazada):
@@ -55,6 +60,14 @@ def _verificar_sala_disponible(sala: Sala) -> None:
     if sala.en_mantenimiento:
         raise ReservaRechazada(
             f"La sala '{sala.nombre}' está en mantenimiento y no puede reservarse."
+        )
+
+
+def _verificar_nivel_para_sala(estudiante: Estudiante, sala: Sala) -> None:
+    """Regla: la sala debe corresponder al nivel del estudiante (ver reservas/niveles.py)."""
+    if not nivel_puede_usar_sala(estudiante.nivel, sala.exclusiva_posgrado):
+        raise SalaNoPermitida(
+            mensaje_sala_no_permitida(estudiante.nivel, sala.nombre, sala.exclusiva_posgrado)
         )
 
 
@@ -187,6 +200,7 @@ def reservar_si_esta_disponible(
     # Cada helper valida UNA regla y lanza ReservaRechazada si falla.
     _verificar_estudiante_habilitado(estudiante)
     _verificar_sala_disponible(sala)
+    _verificar_nivel_para_sala(estudiante, sala)
     _verificar_una_reserva_por_dia(estudiante, fecha, hora_inicio, hora_fin)
     _verificar_disponibilidad_sala(sala, fecha, hora_inicio, hora_fin)
 

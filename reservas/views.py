@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import datetime
 import json
+import re
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -23,7 +25,8 @@ from django.views.decorators.http import require_POST
 from proyecto.clases.horarios import minutos_a_time, parsear_horas, validar_rango_horario
 from proyecto.clases.sistema_reservas import reservar_si_es_posible
 from .models import Estudiante, Reserva, Sala
-from .padron import buscar_en_padron
+from .niveles import nivel_puede_usar_sala
+from .padron import verificar_credenciales
 from .permisos import es_duenio_de_reserva, estudiante_del_usuario, obtener_info_usuario, tiene_poderes_especiales
 from .agenda import armar_agenda
 from .services import ReservaRechazada, ReservaYaComenzo, inicio_de_reserva, modificar_reserva_si_esta_disponible
@@ -39,12 +42,17 @@ BLOQUES_PREDEFINIDOS = [
 ]
 
 COLORES_SALAS = {
-    "Sala Alfa": {"bg": "rgba(16, 185, 129, 0.15)", "border": "#10b981", "text": "#065f46"},
-    "Sala Beta": {"bg": "rgba(59, 130, 246, 0.15)", "border": "#3b82f6", "text": "#1e40af"},
-    "Sala Gamma": {"bg": "rgba(239, 68, 68, 0.15)", "border": "#ef4444", "text": "#991b1b"},
-    "Sala Delta": {"bg": "rgba(168, 85, 247, 0.15)", "border": "#a855f7", "text": "#6b21a8"},
-    "Sala Omega": {"bg": "rgba(245, 158, 11, 0.15)", "border": "#f59e0b", "text": "#92400e"},
+    "Sala A": {"bg": "rgba(16, 185, 129, 0.15)", "border": "#10b981", "text": "#065f46"},
+    "Sala B": {"bg": "rgba(59, 130, 246, 0.15)", "border": "#3b82f6", "text": "#1e40af"},
+    "Sala C": {"bg": "rgba(168, 85, 247, 0.15)", "border": "#a855f7", "text": "#6b21a8"},
+    "Sala D": {"bg": "rgba(245, 158, 11, 0.15)", "border": "#f59e0b", "text": "#92400e"},
+    "Sala E": {"bg": "rgba(20, 184, 166, 0.15)", "border": "#14b8a6", "text": "#115e59"},
+    "Sala F": {"bg": "rgba(236, 72, 153, 0.15)", "border": "#ec4899", "text": "#9d174d"},
+    "Sala H": {"bg": "rgba(239, 68, 68, 0.15)", "border": "#ef4444", "text": "#991b1b"},
+    "Sala J": {"bg": "rgba(99, 102, 241, 0.15)", "border": "#6366f1", "text": "#3730a3"},
 }
+
+CODIGO_VALIDO = re.compile(r"\d{5}")  # los códigos de la UPB (estudiantes y personal) tienen 5 dígitos
 
 
 def _destino_tras_login(request: HttpRequest, user) -> str:
@@ -56,43 +64,39 @@ def _destino_tras_login(request: HttpRequest, user) -> str:
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
-    """Inicio de sesión con dos modos.
+    """Inicio de sesión único para estudiantes, docentes y administradores.
 
-    - Estudiante: código + correo institucional, verificados contra el padrón simulado
-      (``reservas/padron.py``). Si no figura o está inactivo, no entra.
-    - Personal (docente/administradores): usuario y contraseña de Django.
+    Se piden código (5 dígitos), correo institucional y contraseña, y se verifican contra
+    el padrón simulado (``reservas/padron.py``). El rol sale del padrón, no de la pantalla.
+    Si algún dato falla se muestra un mensaje genérico, para no revelar qué códigos existen.
     """
     if request.user.is_authenticated:
         return redirect(_destino_tras_login(request, request.user))
 
     error_mensaje = None
-    modo = request.POST.get("modo", "estudiante") if request.method == "POST" else "estudiante"
-
-    if request.method == "POST" and modo == "estudiante":
+    if request.method == "POST":
         codigo = request.POST.get("codigo", "").strip()
         email = request.POST.get("email", "").strip()
-        persona = buscar_en_padron(codigo, email)
-        if persona is None:
-            error_mensaje = "No figuras en el padrón de la UPB con ese código y ese correo. Revisa ambos datos."
-        elif not persona["activo"]:
-            error_mensaje = "Tu registro en el padrón no está activo. Consulta en Registros de la UPB."
+        password = request.POST.get("password", "")
+
+        if not CODIGO_VALIDO.fullmatch(codigo):
+            error_mensaje = "El código tiene 5 dígitos, por ejemplo 94210."
         else:
-            user = authenticate(request, codigo=codigo, email=email)
-            login(request, user, backend="reservas.padron.PadronBackend")
-            return redirect(_destino_tras_login(request, user))
+            persona = verificar_credenciales(codigo, email, password)
+            if persona is None:
+                error_mensaje = "Código, correo o contraseña incorrectos."
+            elif not persona["activo"]:
+                error_mensaje = "Tu registro en el padrón no está activo. Consulta en Registros de la UPB."
+            else:
+                user = authenticate(request, codigo=codigo, email=email, password=password)
+                login(request, user, backend="reservas.padron.PadronBackend")
+                return redirect(_destino_tras_login(request, user))
 
-    elif request.method == "POST":
-        user = authenticate(
-            request,
-            username=request.POST.get("username", "").strip(),
-            password=request.POST.get("password", ""),
-        )
-        if user is not None:
-            login(request, user)
-            return redirect(_destino_tras_login(request, user))
-        error_mensaje = "Usuario o contraseña incorrectos."
-
-    return render(request, "web/login.html", {"error_mensaje": error_mensaje, "modo": modo})
+    return render(request, "web/login.html", {
+        "error_mensaje": error_mensaje,
+        # Los accesos de demostración (con la contraseña a la vista) solo existen en desarrollo.
+        "mostrar_demo": settings.DEBUG,
+    })
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -117,6 +121,11 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
 
     sala_filtro = request.GET.get("sala", "todas")
     salas = list(Sala.objects.all().order_by("nombre"))
+    user_info = obtener_info_usuario(request.user)
+    estudiante_asociado = estudiante_del_usuario(request.user)
+    if not user_info["tiene_poderes"] and estudiante_asociado is not None:
+        # Un estudiante solo ve las salas de su nivel (A y E: postgrado y doctorado).
+        salas = [s for s in salas if nivel_puede_usar_sala(estudiante_asociado.nivel, s.exclusiva_posgrado)]
 
     query_reservas = {"fecha": fecha_seleccionada, "estado": Reserva.ESTADO_CONFIRMADA}
     if sala_filtro != "todas":
@@ -127,9 +136,6 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
         .select_related("estudiante", "sala")
         .order_by("hora_inicio")
     )
-
-    user_info = obtener_info_usuario(request.user)
-    estudiante_asociado = estudiante_del_usuario(request.user)
 
     ahora = timezone.now()
     reservas_calendario = []

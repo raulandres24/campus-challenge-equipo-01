@@ -20,7 +20,7 @@ Docente y cliente: Ing. Sergio Barrientos.
 
 ## Arquitectura
 
-Recorrido que explicó el docente en la pizarra: el frontend pide datos al middleware; este confirma la identidad del estudiante en un padrón estático (que simula el de la universidad, con unos 15 estudiantes) y guarda las reservas en la base del proyecto.
+Recorrido que explicó el docente en la pizarra: el frontend pide datos al middleware; este confirma la identidad del estudiante en un padrón estático (que simula el de la universidad, con 19 personas ficticias: estudiantes de pregrado, postgrado y doctorado, un docente y tres administradores) y guarda las reservas en la base del proyecto.
 
 ```mermaid
 flowchart LR
@@ -35,7 +35,7 @@ flowchart LR
 |---|---|---|
 | FE | `reservas/templates/web/` con Tailwind (`reservas/static/css/tailwind.css`) | Hecho: login, agenda del estudiante (con modificar reserva) y panel de administrador, adaptados a celular |
 | MW | `reservas/views.py` (vistas y APIs JSON), `reservas/services.py` (reglas), `reservas/permisos.py` | Hecho; la modificación de reservas se agregó en este incremento |
-| DB estática (padrón) | `datos/padron_upb.json` (15 estudiantes ficticios, solo lectura) y `reservas/padron.py` | Hecho: el login de estudiantes se verifica contra el padrón |
+| DB estática (padrón) | `datos/padron_upb.json` (19 personas ficticias con rol y nivel, solo lectura) y `reservas/padron.py` | Hecho: el inicio de sesión único se verifica contra el padrón |
 | DB del proyecto | `reservas/models.py`: `Estudiante`, `Sala`, `Reserva` | Hecho (MongoDB) |
 
 > Hay dos capas con las mismas reglas de creación: `reservas/services.py` (la usan `poblar_bd` y la modificación) y `proyecto/clases/` (la usan la API de reservar y las pruebas anteriores). Unificarlas es un pendiente.
@@ -99,23 +99,42 @@ MongoDB debe funcionar como **replica set** (`rs0`); `docker compose up -d` lo d
 python manage.py runserver
 ```
 
-Abre <http://127.0.0.1:8000/>. La pantalla de inicio de sesión tiene dos accesos:
+Abre <http://127.0.0.1:8000/>. Hay **un solo inicio de sesión** para todos: código (5 dígitos), correo institucional y contraseña. El rol (estudiante, docente o administrador) sale del padrón; no hay pantallas ni pestañas distintas. Con `DEBUG` activo, la pantalla trae botones de demostración (contraseña `password` para todas las personas, **solo para desarrollo**). Ejemplos:
 
-- **Estudiante:** código + correo institucional, verificados contra el padrón simulado. Ejemplos: `U-92004` + `lucia.mendez@est.upb.example`; `U-92005` (Carlos) entra pero no puede reservar porque su matrícula no está vigente; `U-92007` (Sebastián) no entra porque está inactivo.
-- **Docente o administrador:** usuario y contraseña creados por `poblar_bd` (contraseña `password`, **solo para desarrollo**): `sbarrientos`, `rvaca`, `aparraga`, `hugozuniga770`, `admin`.
+| Persona | Código | Correo | Qué muestra |
+|---|---|---|---|
+| Lucía (pregrado) | `94210` | `lucia.mendez@est.upb.example` | Reserva en las salas B, C, D, F, H y J |
+| Carlos (pregrado) | `94377` | `carlos.torrico@est.upb.example` | Entra pero no puede reservar: matrícula no vigente |
+| Sebastián (pregrado) | `92604` | `sebastian.gutierrez@est.upb.example` | No entra: registro inactivo |
+| Patricia (postgrado) | `81247` | `patricia.aguilera@est.upb.example` | Reserva solo las salas A y E |
+| Elena (doctorado) | `72118` | `elena.montano@est.upb.example` | Reserva solo las salas A y E |
+| Docente | `20011` | `sergio.barrientos@upb.example` | Panel de administración |
+| Administradores | `20012`, `20013`, `20014` | `hugo.zuniga@`, `raul.vaca@`, `alejandro.parraga@` + `upb.example` | Panel de administración |
+
+El sitio `/admin/` de Django sigue con usuario y contraseña: `poblar_bd` crea el superusuario `admin` (contraseña `password`, solo desarrollo) únicamente para eso.
+
+### Salas por nivel académico
+
+| Salas | Quién las reserva |
+|---|---|
+| B, C, D, F, H y J | Estudiantes de **pregrado** |
+| A y E | Estudiantes de **postgrado y doctorado** (salas exclusivas) |
+
+La regla está en `reservas/niveles.py` y se aplica al crear la reserva; cada estudiante ve en la agenda solo las salas de su nivel. Por ahora postgrado y doctorado **no** reservan las salas de pregrado: es una decisión provisional hasta preguntarle al docente (si responde que sí, es una línea en `nivel_puede_usar_sala`). Los administradores ven todas las salas.
 
 ### Padrón simulado
 
-`datos/padron_upb.json` simula el padrón de la universidad (la "DB estática" de la pizarra): `codigo`, `nombres`, `apellidos`, `email`, `carrera`, `activo` y `matricula_vigente`. Todos los datos son ficticios y los correos usan el dominio reservado `.example`, que no existe. Al iniciar sesión:
+`datos/padron_upb.json` simula el padrón de la universidad (la "DB estática" de la pizarra). Cada persona trae `codigo` (5 dígitos), `nombres`, `apellidos`, `email`, `rol` (`estudiante`, `docente` o `admin`), `nivel` (`pregrado`, `postgrado` o `doctorado`; vacío para el personal), `carrera`, `activo`, `matricula_vigente` y `password_hash`. La contraseña no se guarda: solo su *hash*, con el mismo formato que usa Django. Todos los datos son ficticios y los correos usan el dominio reservado `.example`, que no existe. Al iniciar sesión:
 
 | Situación | Resultado |
 |---|---|
-| El código y el correo no figuran juntos en el padrón | No entra: "No figuras en el padrón…" |
-| Figura, pero `activo` es `false` | No entra: "Tu registro no está activo" |
-| Figura y está activo | Entra; se crea o actualiza su usuario (username = código) y su `Estudiante` con los datos del padrón |
+| El código no tiene 5 dígitos | No entra: "El código tiene 5 dígitos…" |
+| El código, el correo o la contraseña no coinciden (o no figuran) | No entra: "Código, correo o contraseña incorrectos" (mensaje igual para los tres casos, para no revelar qué códigos existen) |
+| Coinciden los tres, pero `activo` es `false` | No entra: "Tu registro no está activo" |
+| Coinciden y está activo | Entra; se crea o actualiza su usuario (username = código). Si es estudiante, también su `Estudiante` con nivel y matrícula del padrón. Docente y administradores quedan con permisos de gestión (`is_staff`); el padrón nunca da superusuario |
 | Matrícula no vigente | Entra y ve la agenda, pero no puede reservar (regla "solo matrícula al día") |
 
-Un estudiante solo reserva a su nombre: el código sale de su sesión, no del formulario. Si alguna vez se necesitan otros datos, van en `datos/padron_local.json`, que git ignora.
+Un estudiante solo reserva a su nombre: el código sale de su sesión, no del formulario. Para generar el hash de otra contraseña: `python manage.py shell -c "from django.contrib.auth.hashers import make_password; print(make_password('clave'))"`. Si alguna vez se necesitan otros datos, van en `datos/padron_local.json`, que git ignora.
 
 ### API para modificar una reserva
 
@@ -147,7 +166,8 @@ python -m pytest -q tests/test_urls.py tests/test_agenda.py
 | `tests/test_reglas.py` | Reglas de la versión orientada a objetos |
 | `tests/test_modificar_reserva.py` | RES-05: casos normal, borde, límite de 15 min, rechazo con la reserva intacta, reserva ya iniciada, reintento y API |
 | `tests/test_urls.py` | Botón "Salir" (cerrar sesión) |
-| `tests/test_padron.py` | Padrón ficticio, login de estudiantes (activo, inactivo, no registrado) y reservas solo a nombre propio |
+| `tests/test_padron.py` | Padrón ficticio (códigos de 5 dígitos, solo hashes), inicio de sesión único con los tres roles, mensajes de error y reservas solo a nombre propio |
+| `tests/test_niveles.py` | Salas por nivel: pregrado en B, C, D, F, H y J; postgrado y doctorado en A y E; cada estudiante ve solo sus salas |
 | `tests/test_agenda.py` | Agenda del día (reservas fuera de bloque, mantenimiento) y botón "Modificar" en la pantalla |
 
 ## Estructura
@@ -184,11 +204,15 @@ package.json      Solo para recompilar el CSS de Tailwind
 | 07/10/2026 | Alejandro no está disponible: Raúl hace la pantalla de modificar reserva (tarea C). | Plan 8-9. | Hecho. |
 | 07/10/2026 | La agenda muestra cada reserva en todos los bloques con los que se cruza, y "Reservar" solo aparece en bloques libres. | Antes, una reserva que no empezaba justo en un bloque no se veía, y "Disponible" aparecía también en bloques ocupados. | Hecho. |
 | 07/10/2026 | Se quitan del formulario de reserva los campos que no se enviaban (nombre, apellido, detalle). | Pedían datos que el sistema no guardaba. | Hecho. |
-| 07/10/2026 | Padrón simulado con **15 estudiantes ficticios** en `datos/padron_upb.json` (solo lectura). | El encargo pide datos ficticios y el repositorio es público. | Hecho. |
+| 07/10/2026 | Padrón simulado con **15 estudiantes ficticios** en `datos/padron_upb.json` (solo lectura). | El encargo pide datos ficticios y el repositorio es público. | Hecho; ampliado a 19 personas con rol, nivel y contraseña (ver las filas siguientes). |
 | 07/10/2026 | Login de estudiante con **código + correo institucional** contra el padrón; el docente y los administradores siguen con usuario y contraseña. | Confirma que la persona existe y está activa, y enlaza la sesión con su código. | Hecho. **Pendiente de charla:** cualquiera que conozca el código y el correo de otro puede entrar; evaluar agregar contraseña o verificación. |
 | 07/10/2026 | La matrícula vigente se toma del padrón. | Responde de dónde sale el dato de RES-RF-05 (pregunta abierta de la sesión 6). | Hecho. |
 | 07/10/2026 | Un estudiante solo reserva a su nombre: el código sale de su sesión. | Antes se podía escribir el código de otro estudiante. | Hecho. |
 | 07/10/2026 | El campo `carrera` del padrón ("ISC", "LIC" en la pizarra) es un ejemplo del docente para registrar, si se quiere, de qué carrera son quienes reservan. | Pizarra del docente. | En el padrón; **todavía no se usa** en reservas ni reportes. |
+| 07/10/2026 | **Un solo inicio de sesión** (código + correo + contraseña) para estudiantes, docente y administradores; el rol sale del padrón. Se quitan las pestañas "Estudiante" y "Docente o admin". | Decisión de Raúl: cada persona tiene código y correo propios, y un acceso aparte para el personal era una puerta más. | Hecho. |
+| 07/10/2026 | La contraseña se pide a **todos** y el padrón guarda solo su hash. Los mensajes de error no dicen cuál de los tres datos falló. | Con código y correo solos, quien los conociera (no son secretos) entraría como administrador. | Hecho. **Falta**: bloqueo por intentos fallidos y recuperación de contraseña. |
+| 07/10/2026 | Códigos de **5 dígitos** (por ejemplo, `94210`) en lugar de `U-92004`. | Así son los códigos de la UPB. Los del padrón son inventados. | Hecho. |
+| 07/10/2026 | Salas **B, C, D, F, H y J** para pregrado y **A y E** exclusivas de postgrado y doctorado; cada estudiante tiene un `nivel`. Reemplazan a "Sala Alfa", "Beta", etc. | Decisión de Raúl según el campus. | Hecho. Postgrado **solo** en A y E por ahora; **se le preguntará al docente**. |
 
 ## Pendientes y limitaciones
 
@@ -199,12 +223,15 @@ package.json      Solo para recompilar el CSS de Tailwind
 - ¿Se acepta una reserva con asistentes igual a la capacidad?
 - ¿Se puede cancelar una reserva ya iniciada? ¿Se puede mover una reserva a un horario pasado?
 - ¿El aviso de mantenimiento es por correo o por WhatsApp? (El encargo no exige enviar mensajes reales.)
+- ¿Postgrado y doctorado pueden reservar, además de A y E, las salas de pregrado? (Hoy no.)
 - ¿Se registra la carrera de quien reserva (campo `carrera` del padrón)? ¿Para qué reporte?
 - En la pizarra, "Reserva 10:00 / llega 10 am / 11 am" con `req` y `log`: ¿"llega" es la solicitud o el estudiante a la sala?
 
 **Trabajo pendiente**
 
-- Decidir con el equipo si el login de estudiante agrega contraseña o verificación.
+- Seguridad del inicio de sesión: bloqueo tras varios intentos fallidos, recuperación de contraseña y, si el docente lo pide, verificación por correo.
+- Capacidad de cada sala (el modelo `Sala` aún no la tiene).
+- Permitir marcar una sala como exclusiva al crearla desde el panel (hoy solo se hace con `poblar_bd` o el sitio `/admin/`).
 - Capacidad de sala y asistentes (RES-01, RES-03, RES-04).
 - Orden de llegada de solicitudes simultáneas (RES-RF-07), bloqueos por período (RES-06), historial de correcciones (RES-07) y agenda por sala (RES-08).
 - Unificar `reservas/services.py` y `proyecto/clases/`.
@@ -212,5 +239,5 @@ package.json      Solo para recompilar el CSS de Tailwind
 
 **Limitaciones conocidas**
 
-- `api_editar_reserva` (administrador) cambia reservas sin validar reglas.
+- `api_editar_reserva` (administrador) cambia reservas sin validar reglas, tampoco la de salas por nivel.
 - Las contraseñas de demostración (`password`) y la `SECRET_KEY` por defecto son solo para desarrollo.

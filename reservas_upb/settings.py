@@ -115,8 +115,8 @@ MAILERS = {
 # Tipo de campo autoincremental por defecto compatible con MongoDB ObjectId
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
-# Autenticación: administradores con usuario y contraseña (ModelBackend);
-# estudiantes con código + correo contra el padrón simulado (reservas/padron.py).
+# Autenticación: un solo inicio de sesión (código + correo + contraseña) contra el padrón
+# simulado (reservas/padron.py). ModelBackend queda solo para el sitio /admin/ de Django.
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "reservas.padron.PadronBackend",

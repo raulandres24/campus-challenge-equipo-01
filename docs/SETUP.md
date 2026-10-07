@@ -99,15 +99,21 @@ python manage.py poblar_bd
 python manage.py runserver
 ```
 
-Abre <http://127.0.0.1:8000/> (también funciona en el celular: la interfaz es mobile-first). No necesitas Node: el CSS de Tailwind ya va compilado; ver "Interfaz" en el README si cambias clases. Usuarios de demostración (contraseña `password`, **solo para desarrollo**):
+Abre <http://127.0.0.1:8000/> (también funciona en el celular: la interfaz es mobile-first). No necesitas Node: el CSS de Tailwind ya va compilado; ver "Interfaz" en el README si cambias clases.
 
-| Usuario | Rol en la aplicación |
-|---|---|
-| `sbarrientos` | Docente (administrador) |
-| `rvaca`, `aparraga`, `hugozuniga770`, `admin` | Administradores del equipo |
-| `lucia.mendez`, `valeria.flores`, `daniela.castro` | Estudiantes (usuarios antiguos de `poblar_bd`) |
+Hay **un solo inicio de sesión** para todos: código (5 dígitos), correo institucional y contraseña, verificados contra el padrón simulado `datos/padron_upb.json` (personas ficticias). Con `DEBUG` activo, la pantalla trae botones de demostración. La contraseña de todas las personas de demostración es `password` (**solo para desarrollo**).
 
-Los estudiantes también entran por la pestaña **Estudiante** con su código y su correo del padrón ficticio (`datos/padron_upb.json`), por ejemplo `U-92004` y `lucia.mendez@est.upb.example`.
+| Persona | Código | Correo | Rol |
+|---|---|---|---|
+| Lucía | `94210` | `lucia.mendez@est.upb.example` | Estudiante de pregrado (salas B, C, D, F, H, J) |
+| Patricia | `81247` | `patricia.aguilera@est.upb.example` | Estudiante de postgrado (salas A y E) |
+| Elena | `72118` | `elena.montano@est.upb.example` | Estudiante de doctorado (salas A y E) |
+| Sergio Barrientos | `20011` | `sergio.barrientos@upb.example` | Docente (administra) |
+| Raúl, Hugo, Alejandro | `20013`, `20012`, `20014` | `raul.vaca@`, `hugo.zuniga@`, `alejandro.parraga@` + `upb.example` | Administradores |
+
+`poblar_bd` también crea el superusuario `admin` (contraseña `password`) solo para el sitio `/admin/` de Django.
+
+> **Si ya habías corrido `poblar_bd` antes de esta versión** (salas "Alfa", "Beta"…), corre una vez `python manage.py migrate` y luego `python manage.py poblar_bd --limpiar`. Borra las reservas, estudiantes y salas de demostración y las crea de nuevo con las salas A a J.
 
 ## 7. Pruebas (sin tocar la base real)
 

@@ -1,140 +1,233 @@
 {
-  "descripcion": "Padrón SIMULADO de la UPB (datos ficticios). Solo lectura. Los correos usan el dominio reservado .example, que no existe.",
-  "estudiantes": [
+  "descripcion": "Padrón SIMULADO de la UPB (datos ficticios). Solo lectura. Los correos usan dominios reservados .example, que no existen. Contraseña de demostración de todas las personas: «password» (se guarda solo su hash).",
+  "personas": [
     {
-      "codigo": "U-92001",
+      "codigo": "20011",
+      "nombres": "Sergio",
+      "apellidos": "Barrientos",
+      "email": "sergio.barrientos@upb.example",
+      "rol": "docente",
+      "nivel": null,
+      "carrera": null,
+      "activo": true,
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb20011$i7QcS74MWfsGhx1r/1odKewjrE30L9S0bMjsNlJXsQo="
+    },
+    {
+      "codigo": "20012",
       "nombres": "Hugo",
       "apellidos": "Zúñiga",
-      "email": "hugo.zuniga@est.upb.example",
-      "carrera": "ISC",
+      "email": "hugo.zuniga@upb.example",
+      "rol": "admin",
+      "nivel": null,
+      "carrera": null,
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb20012$OvLoNvYwiDAl6/0nXRemL+Z/Z4++n3VMuEY/T2GQZ0E="
     },
     {
-      "codigo": "U-92002",
+      "codigo": "20013",
       "nombres": "Raúl",
       "apellidos": "Vaca",
-      "email": "raul.vaca@est.upb.example",
-      "carrera": "ISC",
+      "email": "raul.vaca@upb.example",
+      "rol": "admin",
+      "nivel": null,
+      "carrera": null,
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb20013$h8Z8pCIjTHuvESc324cjDhbOwZsMWc6RoYtSj3xAszI="
     },
     {
-      "codigo": "U-92003",
+      "codigo": "20014",
       "nombres": "Alejandro",
       "apellidos": "Párraga",
-      "email": "alejandro.parraga@est.upb.example",
-      "carrera": "ISC",
+      "email": "alejandro.parraga@upb.example",
+      "rol": "admin",
+      "nivel": null,
+      "carrera": null,
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb20014$zcc3kCakby//phFaMxmQJGmbUUiQDN6LYq95UTLRkUk="
     },
     {
-      "codigo": "U-92004",
+      "codigo": "94210",
       "nombres": "Lucía",
       "apellidos": "Méndez",
       "email": "lucia.mendez@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb94210$buI3L3dt0rJFG3JO8I7KWym7bgKhxPVkoEb5Wv+Pts8="
     },
     {
-      "codigo": "U-92005",
+      "codigo": "94377",
       "nombres": "Carlos",
       "apellidos": "Torrico",
       "email": "carlos.torrico@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": false
+      "matricula_vigente": false,
+      "password_hash": "pbkdf2_sha256$1000000$upb94377$DjArmPa3jHPb3iJOKg9Ysh0bcvPKVnPptBbaDYqTP00="
     },
     {
-      "codigo": "U-92006",
+      "codigo": "93815",
       "nombres": "Valeria",
       "apellidos": "Flores",
       "email": "valeria.flores@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb93815$qLNre3FX9jwFltz6SRdMNWWqlS+F2lKAPU+wHzTRXCI="
     },
     {
-      "codigo": "U-92007",
+      "codigo": "92604",
       "nombres": "Sebastián",
       "apellidos": "Gutiérrez",
       "email": "sebastian.gutierrez@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": false,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb92604$OICl2U96Thq74XVkyYd/8TVAK/ykr8qjzWoNzOuhp7Q="
     },
     {
-      "codigo": "U-92008",
+      "codigo": "95048",
       "nombres": "Daniela",
       "apellidos": "Castro",
       "email": "daniela.castro@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb95048$rSz9gcS1MsFs17kwn5yzEe7fSn49OULQNn6ep1dyWmU="
     },
     {
-      "codigo": "U-92009",
+      "codigo": "93192",
       "nombres": "Andrés",
       "apellidos": "Romero",
       "email": "andres.romero@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb93192$0fkv7jiq2rKFOIGC6rAxvROf4Eio9/S0sRslDoItiH8="
     },
     {
-      "codigo": "U-92010",
+      "codigo": "94731",
       "nombres": "Fernanda",
       "apellidos": "Salinas",
       "email": "fernanda.salinas@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb94731$8vJm3HcHdNFpEPEAPpUZzyiEPKb4GypjdkmVm4Ty3Vk="
     },
     {
-      "codigo": "U-92011",
-      "nombres": "Mateo",
-      "apellidos": "Aguilera",
-      "email": "mateo.aguilera@est.upb.example",
+      "codigo": "92956",
+      "nombres": "Diego",
+      "apellidos": "Suárez",
+      "email": "diego.suarez@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb92956$Yire0oNSEH0egcEJ9yFFQkSbYQUPSIevc7Y+02AJtSw="
     },
     {
-      "codigo": "U-92012",
+      "codigo": "95513",
       "nombres": "Camila",
       "apellidos": "Rojas",
       "email": "camila.rojas@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb95513$1GFrSIJBXpqqGEMD8idfIuiOQypn2eivmNeIoJGuB3Y="
     },
     {
-      "codigo": "U-92013",
-      "nombres": "Diego",
-      "apellidos": "Villarroel",
-      "email": "diego.villarroel@est.upb.example",
+      "codigo": "93340",
+      "nombres": "Mateo",
+      "apellidos": "Vargas",
+      "email": "mateo.vargas@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": false
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb93340$wzRggfle8VSOy0y73W+U6+LlAT8Z5X+rS+caetsl80Q="
     },
     {
-      "codigo": "U-92014",
-      "nombres": "Paula",
-      "apellidos": "Céspedes",
-      "email": "paula.cespedes@est.upb.example",
-      "carrera": "ISC",
+      "codigo": "81247",
+      "nombres": "Patricia",
+      "apellidos": "Aguilera",
+      "email": "patricia.aguilera@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "postgrado",
+      "carrera": "MSC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb81247$uwJ3ewO3jgLH0wEoek2CaXDSKqTGlPKfjrcy+CDfGX0="
     },
     {
-      "codigo": "U-92015",
-      "nombres": "Joaquín",
-      "apellidos": "Suárez",
-      "email": "joaquin.suarez@est.upb.example",
-      "carrera": "LIC",
+      "codigo": "81692",
+      "nombres": "Marcelo",
+      "apellidos": "Ibáñez",
+      "email": "marcelo.ibanez@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "postgrado",
+      "carrera": "MSC",
       "activo": true,
-      "matricula_vigente": true
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb81692$N8wy4m9g7+iz84XjSOuQ3+gAQ1OULMAaEmXwFpcR7+4="
+    },
+    {
+      "codigo": "80435",
+      "nombres": "Rosario",
+      "apellidos": "Calle",
+      "email": "rosario.calle@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "postgrado",
+      "carrera": "MSC",
+      "activo": true,
+      "matricula_vigente": false,
+      "password_hash": "pbkdf2_sha256$1000000$upb80435$zMZq7yuMyhkSD5750xkhO2RGU6RfPL057b1bG3HbzDM="
+    },
+    {
+      "codigo": "72118",
+      "nombres": "Elena",
+      "apellidos": "Montaño",
+      "email": "elena.montano@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "doctorado",
+      "carrera": "PHD",
+      "activo": true,
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb72118$i76WAKnHlhGt278kZHGwbSL0wX/VQDlqUW/F7IQcLkQ="
+    },
+    {
+      "codigo": "72593",
+      "nombres": "Gonzalo",
+      "apellidos": "Peredo",
+      "email": "gonzalo.peredo@est.upb.example",
+      "rol": "estudiante",
+      "nivel": "doctorado",
+      "carrera": "PHD",
+      "activo": true,
+      "matricula_vigente": true,
+      "password_hash": "pbkdf2_sha256$1000000$upb72593$KcTiiX7jBewJa+r3ow//iDn5akbgaXNPRD9OL0QeyPQ="
     }
   ]
 }

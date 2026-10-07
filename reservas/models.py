@@ -19,11 +19,27 @@ from django.db import models
 class Estudiante(models.Model):
     """Estudiante universitario solicitante en el sistema de reservas UPB."""
 
+    NIVEL_PREGRADO = "pregrado"
+    NIVEL_POSTGRADO = "postgrado"
+    NIVEL_DOCTORADO = "doctorado"
+    NIVELES = [
+        (NIVEL_PREGRADO, "Pregrado"),
+        (NIVEL_POSTGRADO, "Postgrado"),
+        (NIVEL_DOCTORADO, "Doctorado"),
+    ]
+
     codigo_estudiante = models.CharField(max_length=20, unique=True, verbose_name="Código de Estudiante")
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     esta_activo = models.BooleanField(default=True, verbose_name="¿Está Activo?")
     matricula_pagada = models.BooleanField(default=False, verbose_name="¿Matrícula Pagada?")
+    nivel = models.CharField(
+        max_length=10,
+        choices=NIVELES,
+        default=NIVEL_PREGRADO,
+        verbose_name="Nivel académico",
+        help_text="Define qué salas puede reservar (ver reservas/niveles.py).",
+    )
 
     class Meta:
         ordering = ["apellidos", "nombres"]
@@ -51,6 +67,11 @@ class Sala(models.Model):
         default=False,
         verbose_name="¿En Mantenimiento?",
         help_text="Indica si la sala se encuentra temporalmente fuera de servicio.",
+    )
+    exclusiva_posgrado = models.BooleanField(
+        default=False,
+        verbose_name="¿Exclusiva de postgrado y doctorado?",
+        help_text="Si está marcada, solo la reservan estudiantes de postgrado o doctorado (salas A y E).",
     )
 
     class Meta:

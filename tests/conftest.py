@@ -152,3 +152,16 @@ def sala_mantenimiento_db(limpiar_reservas_test):
     sala.en_mantenimiento = True
     sala.save()
     return sala
+
+
+@pytest.fixture
+def sala_posgrado_db(limpiar_reservas_test):
+    """Sala exclusiva de postgrado y doctorado (como las salas A y E) en MongoDB."""
+    sala, _ = Sala.objects.get_or_create(
+        nombre="Test Sala Posgrado",
+        defaults={"en_mantenimiento": False, "exclusiva_posgrado": True},
+    )
+    sala.en_mantenimiento = False
+    sala.exclusiva_posgrado = True
+    sala.save()
+    return sala

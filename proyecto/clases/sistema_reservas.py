@@ -84,6 +84,16 @@ def reservar_si_es_posible(
     if not sala_habilitada or sala_obj is None:
         return {"estado": "RECHAZADA", "mensaje": msg_sala}
 
+    # 4b. La sala debe corresponder al nivel del estudiante (A y E: postgrado y doctorado)
+    from reservas.niveles import mensaje_sala_no_permitida, nivel_puede_usar_sala
+    if not nivel_puede_usar_sala(estudiante_obj.nivel, sala_obj.exclusiva_posgrado):
+        return {
+            "estado": "RECHAZADA",
+            "mensaje": mensaje_sala_no_permitida(
+                estudiante_obj.nivel, sala_obj.nombre, sala_obj.exclusiva_posgrado
+            ),
+        }
+
     # 5. Validar que el estudiante no tenga otra reserva en ese mismo bloque horario
     sin_cruce_estudiante, msg_cruce = revisar_reserva_estudiante_en_horario(
         estudiante_obj, fecha_obj, h_ini_obj, h_fin_obj
