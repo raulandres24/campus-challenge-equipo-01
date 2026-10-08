@@ -200,6 +200,8 @@ python -m pytest -q tests/test_urls.py tests/test_agenda.py
 | `tests/test_niveles.py` | Salas por nivel: pregrado en B, C, D, F, H y J; postgrado y doctorado en A y E; cada estudiante ve solo sus salas |
 | `tests/test_agenda.py` | Agenda del día (reservas fuera de bloque, mantenimiento) y botón "Modificar" en la pantalla |
 
+La relación de cada prueba con su requisito, historia (`RES-HU-01`) y caso de uso (`RES-CU-01`) está en [docs/TRAZABILIDAD_PRUEBAS.md](docs/TRAZABILIDAD_PRUEBAS.md).
+
 ## Estructura
 
 ```text
