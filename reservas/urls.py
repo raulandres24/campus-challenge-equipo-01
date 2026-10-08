@@ -13,6 +13,7 @@ urlpatterns = [
     path("panel/", views.admin_dashboard_view, name="admin_dashboard"),
     path("admin-dashboard/", views.admin_dashboard_view, name="admin_dashboard_alias"),
     path("login/", views.login_view, name="login"),
+    path("registro/", views.registro_view, name="registro"),
     path("logout/", views.logout_view, name="logout"),
 
     # APIs Públicas y de Reserva

@@ -3,22 +3,22 @@ reservas/padron.py
 ==================
 Padrón SIMULADO de la UPB (la "DB estática" de la pizarra del docente).
 
-    FE → MW → [DB estática: padrón] → DB del proyecto
+Recorrido que explicó el docente (07/10/2026): el padrón se consulta **solo al registrarse**.
+
+    REGISTRO:       FE → MW → [DB estática: padrón] → DB del proyecto
+    INICIAR SESIÓN: FE → MW → DB del proyecto        (la persona ya está registrada)
 
 - El padrón es un archivo JSON de solo lectura: ``datos/padron_upb.json``
   (19 personas ficticias: estudiantes de pregrado, postgrado y doctorado, un docente
   y tres administradores). El sistema nunca lo modifica.
 - Si existe ``datos/padron_local.json`` (excluido de git), se usa ese.
   Sirve para cargar otros datos sin subirlos al repositorio público.
-- **Un solo inicio de sesión** para todos: código (5 dígitos) + correo institucional +
-  contraseña. El rol sale del padrón (``estudiante``, ``docente`` o ``admin``); no hay
-  pantallas distintas.
-- La contraseña no se guarda: el padrón solo tiene su *hash* (``password_hash``, mismo
-  formato que usa Django). Para generar uno:
-  ``python manage.py shell -c "from django.contrib.auth.hashers import make_password; print(make_password('clave'))"``
-- Si la persona figura, está activa y la contraseña coincide, se crea o actualiza su
-  ``User`` de Django (username = código) y, si es estudiante, su ``Estudiante`` con los
-  datos del padrón (nivel académico y matrícula vigente: fuente del dato de RES-RF-05).
+- Al registrarse, la persona escribe su código (5 dígitos) y su correo institucional.
+  Si figuran juntos en el padrón y está activa, elige su contraseña y se crea su cuenta en
+  la base del proyecto: un ``User`` de Django (username = código) y, si es estudiante, su
+  ``Estudiante`` con el nivel académico y la matrícula vigente del padrón.
+- El padrón no guarda contraseñas. Cada persona elige la suya al registrarse y Django
+  guarda solo su *hash* en la base del proyecto.
 """
 
 from __future__ import annotations
@@ -28,13 +28,14 @@ from pathlib import Path
 from typing import Optional
 
 from django.conf import settings
-from django.contrib.auth.backends import BaseBackend
-from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import User
 
 from .models import Estudiante
 
 CARPETA_DATOS = Path(settings.BASE_DIR) / "datos"
+
+# Docentes y administradores gestionan salas y reservas ajenas (permisos.py → is_staff).
+ROLES_CON_PODERES = {"docente", "admin"}
 
 
 def ruta_padron() -> Path:
@@ -65,38 +66,13 @@ def buscar_en_padron(codigo: str, email: str, padron: Optional[list[dict]] = Non
     return None
 
 
-def buscar_por_codigo(codigo: str, padron: Optional[list[dict]] = None) -> Optional[dict]:
-    """Persona del padrón con ese código (para saber su rol), o None."""
-    codigo = (codigo or "").strip().upper()
-    if not codigo:
-        return None
-    for persona in padron if padron is not None else cargar_padron():
-        if persona["codigo"].upper() == codigo:
-            return persona
-    return None
+def registrar_desde_padron(persona: dict, password: str) -> User:
+    """Crea (o rehace) la cuenta de una persona del padrón en la base del proyecto.
 
-
-def verificar_credenciales(
-    codigo: str, email: str, password: str, padron: Optional[list[dict]] = None
-) -> Optional[dict]:
-    """Persona del padrón si el código, el correo Y la contraseña coinciden; si no, None.
-
-    No mira si está activa: eso lo decide quien llama, para poder avisarle solo a quien
-    ya demostró ser esa persona (no se revela a un desconocido si un código existe).
+    ``password`` se guarda con hash de Django. La vista de registro es quien comprueba que
+    la persona esté activa y que la cuenta no exista; esta función no lo hace, para que
+    ``poblar_bd`` pueda recrear las cuentas de demostración.
     """
-    persona = buscar_en_padron(codigo, email, padron)
-    if persona is None:
-        return None
-    if not check_password(password or "", persona.get("password_hash", "")):
-        return None
-    return persona
-
-
-ROLES_CON_PODERES = {"docente", "admin"}
-
-
-def sincronizar_desde_padron(persona: dict) -> User:
-    """Crea o actualiza el User de Django (y el Estudiante, si lo es) con los datos del padrón."""
     if persona.get("rol", "estudiante") == "estudiante":
         estudiante, _ = Estudiante.objects.get_or_create(
             codigo_estudiante=persona["codigo"],
@@ -114,31 +90,8 @@ def sincronizar_desde_padron(persona: dict) -> User:
     usuario.last_name = persona["apellidos"]
     usuario.email = persona["email"]
     usuario.is_active = bool(persona["activo"])
-    # Docentes y administradores gestionan salas y reservas ajenas (permisos.py → is_staff).
-    # Nadie recibe is_superuser desde el padrón.
     usuario.is_staff = persona.get("rol") in ROLES_CON_PODERES
-    usuario.is_superuser = False
-    usuario.password = persona.get("password_hash") or ""
-    if not usuario.password:
-        usuario.set_unusable_password()
+    usuario.is_superuser = False  # nadie recibe superusuario desde el padrón
+    usuario.set_password(password)
     usuario.save()
     return usuario
-
-
-class PadronBackend(BaseBackend):
-    """Backend de autenticación de Django: código + correo + contraseña contra el padrón.
-
-    Es el único acceso de la pantalla de inicio de sesión. ``ModelBackend`` se conserva
-    solo para el sitio ``/admin/`` de Django (superusuarios creados con ``createsuperuser``).
-    """
-
-    def authenticate(self, request, codigo=None, email=None, password=None, **kwargs):
-        if codigo is None or email is None or password is None:
-            return None  # no es un intento de login por padrón
-        persona = verificar_credenciales(codigo, email, password)
-        if persona is None or not persona["activo"]:
-            return None
-        return sincronizar_desde_padron(persona)
-
-    def get_user(self, user_id):
-        return User.objects.filter(pk=user_id, is_active=True).first()

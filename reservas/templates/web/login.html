@@ -11,6 +11,9 @@
         <p class="mt-1 text-center text-suave">Reserva una sala del campus UPB Santa Cruz.</p>
 
         <div class="tarjeta mt-6 p-5">
+            {% if recien_registrado %}
+            <p class="mb-4 rounded-lg bg-libre/10 p-3 text-sm font-bold text-libre" role="status">Cuenta creada. Ahora inicia sesión con tu código, tu correo y la contraseña que elegiste.</p>
+            {% endif %}
             {% if error_mensaje %}
             <p class="mb-4 rounded-lg bg-alerta/5 p-3 text-sm font-bold text-alerta" role="alert">{{ error_mensaje }}</p>
             {% endif %}
@@ -35,21 +38,21 @@
                            autocomplete="current-password" required>
                 </div>
                 <button type="submit" class="boton-primario w-full">Iniciar sesión</button>
-                <p class="text-xs text-suave">Se verifica que figures en el padrón de la UPB, que tu registro esté activo y que la contraseña sea la tuya.</p>
             </form>
         </div>
+
+        <p class="mt-4 text-center text-sm text-suave">¿Primera vez? <a href="{% url 'registro' %}" class="font-bold text-azul underline">Crea tu cuenta</a></p>
 
         {% if mostrar_demo %}
         <!-- Solo en desarrollo (DEBUG): datos ficticios y contraseña de demostración a la vista -->
         <details class="mt-4 rounded-xl border border-dashed border-borde bg-white/60 p-4 text-sm">
             <summary class="cursor-pointer font-bold">Accesos de demostración</summary>
-            <p class="mt-2 text-suave">Personas del padrón ficticio (<code>datos/padron_upb.json</code>), contraseña <code>password</code>:</p>
+            <p class="mt-2 text-suave">Cuentas ya registradas por <code>poblar_bd</code> (contraseña <code>password</code>):</p>
             <p class="mt-3 text-xs font-bold uppercase text-suave">Pregrado (salas B, C, D, F, H, J)</p>
             <div class="mt-1 grid grid-cols-2 gap-2">
                 <button type="button" class="boton-secundario" onclick="entrar('94210', 'lucia.mendez@est.upb.example')">Lucía</button>
                 <button type="button" class="boton-secundario" onclick="entrar('93815', 'valeria.flores@est.upb.example')">Valeria</button>
                 <button type="button" class="boton-secundario" onclick="entrar('94377', 'carlos.torrico@est.upb.example')">Carlos (sin matrícula)</button>
-                <button type="button" class="boton-secundario" onclick="entrar('92604', 'sebastian.gutierrez@est.upb.example')">Sebastián (inactivo)</button>
             </div>
             <p class="mt-3 text-xs font-bold uppercase text-suave">Postgrado y doctorado (salas A y E)</p>
             <div class="mt-1 grid grid-cols-2 gap-2">
@@ -63,6 +66,8 @@
                 <button type="button" class="boton-secundario" onclick="entrar('20012', 'hugo.zuniga@upb.example')">Hugo (admin)</button>
                 <button type="button" class="boton-secundario" onclick="entrar('20014', 'alejandro.parraga@upb.example')">Alejandro (admin)</button>
             </div>
+            <p class="mt-3 text-xs font-bold uppercase text-suave">Para probar el registro (sin cuenta todavía)</p>
+            <p class="mt-1 text-suave">Diego: <code>92956</code> y <code>diego.suarez@est.upb.example</code>. Gonzalo (doctorado): <code>72593</code> y <code>gonzalo.peredo@est.upb.example</code>. Sebastián (<code>92604</code>, <code>sebastian.gutierrez@est.upb.example</code>) está inactivo y no puede registrarse.</p>
         </details>
         {% endif %}
     </div>

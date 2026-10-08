@@ -76,30 +76,19 @@ def es_duenio_de_reserva(user, reserva) -> bool:
     )
 
 
-def _persona_del_padron(user):
-    """Persona del padrón cuyo código es el username del usuario, o None (también si falta el archivo)."""
-    from .padron import buscar_por_codigo  # import local: padron importa los modelos
-
-    try:
-        return buscar_por_codigo(user.username)
-    except (OSError, KeyError, ValueError):
-        return None
-
-
-def _rol_e_insignia_del_padron(persona):
-    """Rol e insignia para mostrar, según el rol y el nivel que dice el padrón."""
-    rol = persona.get("rol", "estudiante")
-    if rol == "docente":
-        return "Docente", "👑 DOCENTE"
-    if rol == "admin":
-        return "Administrador", "👑 ADMIN"
-    nivel = persona.get("nivel") or "pregrado"
+def _rol_e_insignia_del_estudiante(estudiante):
+    """Rol e insignia para mostrar, según el nivel académico guardado en la base del proyecto."""
+    nivel = (estudiante.nivel if estudiante is not None else None) or "pregrado"
     etiquetas = {"pregrado": "🎓 ESTUDIANTE UPB", "postgrado": "🎓 POSTGRADO", "doctorado": "🎓 DOCTORADO"}
     return f"Estudiante de {nivel}", etiquetas.get(nivel, "🎓 ESTUDIANTE UPB")
 
 
-def obtener_info_usuario(user) -> Dict[str, Any]:
-    """Retorna un diccionario con los detalles de perfil, rol y poderes del usuario."""
+def obtener_info_usuario(user, estudiante=None) -> Dict[str, Any]:
+    """Retorna un diccionario con los detalles de perfil, rol y poderes del usuario.
+
+    ``estudiante`` (opcional) es el ``Estudiante`` vinculado al usuario; sirve para mostrar su nivel.
+    No consulta el padrón: todo sale de la base del proyecto.
+    """
     if not user or not user.is_authenticated:
         return {
             "autenticado": False,
@@ -113,12 +102,8 @@ def obtener_info_usuario(user) -> Dict[str, Any]:
     es_admin = tiene_poderes_especiales(user)
     nombre = f"{user.first_name} {user.last_name}".strip() or user.username
 
-    persona = _persona_del_padron(user)
-
     # Títulos personalizados para el equipo de honor
-    if persona is not None:
-        rol, insignia = _rol_e_insignia_del_padron(persona)
-    elif user.username.lower() in {"sbarrientos", "sergio.barrientos"}:
+    if user.username.lower() in {"sbarrientos", "sergio.barrientos"}:
         rol = "Docente / Director"
         insignia = "👑 INGENIERO DOCENTE"
     elif user.username.lower() in {"hzuniga", "hugo.zuniga"}:
@@ -130,12 +115,14 @@ def obtener_info_usuario(user) -> Dict[str, Any]:
     elif user.username.lower() in {"aparraga", "alejandro.parraga"}:
         rol = "Administrador"
         insignia = "👑 ADMIN ALEJANDRO"
-    elif es_admin:
+    elif user.is_superuser:
         rol = "Superusuario"
         insignia = "👑 SUPERADMIN"
+    elif es_admin:
+        rol = "Docente o administrador"
+        insignia = "👑 PERSONAL UPB"
     else:
-        rol = "Estudiante Regular"
-        insignia = "🎓 ESTUDIANTE UPB"
+        rol, insignia = _rol_e_insignia_del_estudiante(estudiante)
 
     return {
         "autenticado": True,

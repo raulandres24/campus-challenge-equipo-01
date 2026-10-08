@@ -1,0 +1,51 @@
+{% extends "web/base.html" %}
+{% block titulo %}Crear cuenta{% endblock %}
+
+{% block cuerpo %}
+<main class="flex min-h-screen flex-col items-center justify-center px-4 py-10">
+    <div class="w-full max-w-sm">
+        <img class="mx-auto h-12 w-auto"
+             src="https://www.upbvirtual.net/upbvirtual/pluginfile.php/1/theme_adaptable/logo/1785874399/2xlogo_2.png"
+             alt="Universidad Privada Boliviana">
+        <h1 class="mt-6 text-center text-2xl font-bold">Crear cuenta</h1>
+        <p class="mt-1 text-center text-suave">Se verifica tu código y tu correo en el padrón de la UPB. Solo se hace una vez.</p>
+
+        <div class="tarjeta mt-6 p-5">
+            {% if errores %}
+            <div class="mb-4 rounded-lg bg-alerta/5 p-3 text-sm font-bold text-alerta" role="alert">
+                {% for error in errores %}<p>{{ error }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="etiqueta" for="codigo">Código</label>
+                    <input type="text" id="codigo" name="codigo" class="campo" placeholder="Ej: 94210"
+                           inputmode="numeric" pattern="[0-9]{5}" maxlength="5" minlength="5"
+                           autocomplete="username" value="{{ valores.codigo }}" required>
+                </div>
+                <div>
+                    <label class="etiqueta" for="email">Correo institucional</label>
+                    <input type="email" id="email" name="email" class="campo" placeholder="nombre.apellido@est.upb.example"
+                           autocomplete="email" value="{{ valores.email }}" required>
+                </div>
+                <div>
+                    <label class="etiqueta" for="password">Elige una contraseña</label>
+                    <input type="password" id="password" name="password" class="campo"
+                           autocomplete="new-password" aria-describedby="ayudaClave" required>
+                    <p id="ayudaClave" class="mt-1 text-xs text-suave">Mínimo 8 caracteres, que no sea común ni solo números, ni parecida a tu nombre o correo.</p>
+                </div>
+                <div>
+                    <label class="etiqueta" for="password2">Repite la contraseña</label>
+                    <input type="password" id="password2" name="password2" class="campo"
+                           autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="boton-primario w-full">Crear cuenta</button>
+            </form>
+        </div>
+
+        <p class="mt-4 text-center text-sm text-suave">¿Ya tienes cuenta? <a href="{% url 'login' %}" class="font-bold text-azul underline">Inicia sesión</a></p>
+    </div>
+</main>
+{% endblock %}

@@ -8,7 +8,7 @@ de postgrado y doctorado (decisión provisional, ver reservas/niveles.py).
 import datetime
 
 import pytest
-from django.test import Client
+from django.utils import timezone
 
 from reservas.niveles import mensaje_sala_no_permitida, nivel_puede_usar_sala
 from reservas.services import SalaNoPermitida, reservar_si_esta_disponible
@@ -74,39 +74,31 @@ def test_postgrado_reserva_sala_exclusiva_y_no_la_comun(estudiante_habilitado_db
             fecha=DIA, hora_inicio=datetime.time(14, 30), hora_fin=datetime.time(16, 30))
 
 
-def _entrar(cliente, codigo, email):
-    return cliente.post("/login/", {"codigo": codigo, "email": email, "password": "password"})
-
-
 def _reservar(cliente, nombre_sala):
     return cliente.post(
         "/api/reservar/",
-        {"nombre_sala": nombre_sala, "hora_inicio": "10:00", "hora_fin": "12:00", "fecha": DIA.isoformat()},
+        {"nombre_sala": nombre_sala, "hora_inicio": "10:00", "hora_fin": "12:00", "fecha": timezone.localdate().isoformat()},
         content_type="application/json",
     ).json()
 
 
-def test_endpoint_pregrado_no_reserva_sala_de_posgrado(sala_posgrado_db):
-    cliente = Client()
-    _entrar(cliente, "94210", "lucia.mendez@est.upb.example")
+def test_endpoint_pregrado_no_reserva_sala_de_posgrado(sala_posgrado_db, iniciar_sesion):
+    cliente = iniciar_sesion("94210")  # Lucía, pregrado
     respuesta = _reservar(cliente, sala_posgrado_db.nombre)
     assert respuesta["estado"] == "RECHAZADA"
     assert "exclusiva de postgrado y doctorado" in respuesta["mensaje"]
 
 
-def test_endpoint_postgrado_reserva_su_sala(sala_posgrado_db):
-    cliente = Client()
-    _entrar(cliente, "81247", "patricia.aguilera@est.upb.example")
+def test_endpoint_postgrado_reserva_su_sala(sala_posgrado_db, iniciar_sesion):
+    cliente = iniciar_sesion("81247")  # Patricia, postgrado
     assert _reservar(cliente, sala_posgrado_db.nombre)["estado"] == "CONFIRMADA"
 
 
-def test_cada_estudiante_ve_solo_las_salas_de_su_nivel(sala_disponible_db, sala_posgrado_db):
-    pregrado = Client()
-    _entrar(pregrado, "94210", "lucia.mendez@est.upb.example")
+def test_cada_estudiante_ve_solo_las_salas_de_su_nivel(sala_disponible_db, sala_posgrado_db, iniciar_sesion):
+    pregrado = iniciar_sesion("94210")
     html = pregrado.get("/").content.decode()
     assert sala_disponible_db.nombre in html and sala_posgrado_db.nombre not in html
 
-    posgrado = Client()
-    _entrar(posgrado, "81247", "patricia.aguilera@est.upb.example")
+    posgrado = iniciar_sesion("81247")
     html = posgrado.get("/").content.decode()
     assert sala_posgrado_db.nombre in html and sala_disponible_db.nombre not in html

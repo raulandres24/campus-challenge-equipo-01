@@ -1,5 +1,5 @@
 {
-  "descripcion": "Padrón SIMULADO de la UPB (datos ficticios). Solo lectura. Los correos usan dominios reservados .example, que no existen. Contraseña de demostración de todas las personas: «password» (se guarda solo su hash).",
+  "descripcion": "Padrón SIMULADO de la UPB (datos ficticios). Solo lectura. Se consulta únicamente al registrarse; los correos usan el dominio reservado .example, que no existe.",
   "personas": [
     {
       "codigo": "20011",
@@ -10,8 +10,7 @@
       "nivel": null,
       "carrera": null,
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb20011$i7QcS74MWfsGhx1r/1odKewjrE30L9S0bMjsNlJXsQo="
+      "matricula_vigente": true
     },
     {
       "codigo": "20012",
@@ -22,8 +21,7 @@
       "nivel": null,
       "carrera": null,
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb20012$OvLoNvYwiDAl6/0nXRemL+Z/Z4++n3VMuEY/T2GQZ0E="
+      "matricula_vigente": true
     },
     {
       "codigo": "20013",
@@ -34,8 +32,7 @@
       "nivel": null,
       "carrera": null,
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb20013$h8Z8pCIjTHuvESc324cjDhbOwZsMWc6RoYtSj3xAszI="
+      "matricula_vigente": true
     },
     {
       "codigo": "20014",
@@ -46,8 +43,7 @@
       "nivel": null,
       "carrera": null,
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb20014$zcc3kCakby//phFaMxmQJGmbUUiQDN6LYq95UTLRkUk="
+      "matricula_vigente": true
     },
     {
       "codigo": "94210",
@@ -58,8 +54,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb94210$buI3L3dt0rJFG3JO8I7KWym7bgKhxPVkoEb5Wv+Pts8="
+      "matricula_vigente": true
     },
     {
       "codigo": "94377",
@@ -70,8 +65,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": false,
-      "password_hash": "pbkdf2_sha256$1000000$upb94377$DjArmPa3jHPb3iJOKg9Ysh0bcvPKVnPptBbaDYqTP00="
+      "matricula_vigente": false
     },
     {
       "codigo": "93815",
@@ -82,8 +76,7 @@
       "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb93815$qLNre3FX9jwFltz6SRdMNWWqlS+F2lKAPU+wHzTRXCI="
+      "matricula_vigente": true
     },
     {
       "codigo": "92604",
@@ -94,8 +87,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": false,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb92604$OICl2U96Thq74XVkyYd/8TVAK/ykr8qjzWoNzOuhp7Q="
+      "matricula_vigente": true
     },
     {
       "codigo": "95048",
@@ -106,8 +98,7 @@
       "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb95048$rSz9gcS1MsFs17kwn5yzEe7fSn49OULQNn6ep1dyWmU="
+      "matricula_vigente": true
     },
     {
       "codigo": "93192",
@@ -118,8 +109,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb93192$0fkv7jiq2rKFOIGC6rAxvROf4Eio9/S0sRslDoItiH8="
+      "matricula_vigente": true
     },
     {
       "codigo": "94731",
@@ -130,8 +120,7 @@
       "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb94731$8vJm3HcHdNFpEPEAPpUZzyiEPKb4GypjdkmVm4Ty3Vk="
+      "matricula_vigente": true
     },
     {
       "codigo": "92956",
@@ -142,8 +131,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb92956$Yire0oNSEH0egcEJ9yFFQkSbYQUPSIevc7Y+02AJtSw="
+      "matricula_vigente": true
     },
     {
       "codigo": "95513",
@@ -154,8 +142,7 @@
       "nivel": "pregrado",
       "carrera": "LIC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb95513$1GFrSIJBXpqqGEMD8idfIuiOQypn2eivmNeIoJGuB3Y="
+      "matricula_vigente": true
     },
     {
       "codigo": "93340",
@@ -166,8 +153,7 @@
       "nivel": "pregrado",
       "carrera": "ISC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb93340$wzRggfle8VSOy0y73W+U6+LlAT8Z5X+rS+caetsl80Q="
+      "matricula_vigente": true
     },
     {
       "codigo": "81247",
@@ -178,8 +164,7 @@
       "nivel": "postgrado",
       "carrera": "MSC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb81247$uwJ3ewO3jgLH0wEoek2CaXDSKqTGlPKfjrcy+CDfGX0="
+      "matricula_vigente": true
     },
     {
       "codigo": "81692",
@@ -190,8 +175,7 @@
       "nivel": "postgrado",
       "carrera": "MSC",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb81692$N8wy4m9g7+iz84XjSOuQ3+gAQ1OULMAaEmXwFpcR7+4="
+      "matricula_vigente": true
     },
     {
       "codigo": "80435",
@@ -202,8 +186,7 @@
       "nivel": "postgrado",
       "carrera": "MSC",
       "activo": true,
-      "matricula_vigente": false,
-      "password_hash": "pbkdf2_sha256$1000000$upb80435$zMZq7yuMyhkSD5750xkhO2RGU6RfPL057b1bG3HbzDM="
+      "matricula_vigente": false
     },
     {
       "codigo": "72118",
@@ -214,8 +197,7 @@
       "nivel": "doctorado",
       "carrera": "PHD",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb72118$i76WAKnHlhGt278kZHGwbSL0wX/VQDlqUW/F7IQcLkQ="
+      "matricula_vigente": true
     },
     {
       "codigo": "72593",
@@ -226,8 +208,7 @@
       "nivel": "doctorado",
       "carrera": "PHD",
       "activo": true,
-      "matricula_vigente": true,
-      "password_hash": "pbkdf2_sha256$1000000$upb72593$KcTiiX7jBewJa+r3ow//iDn5akbgaXNPRD9OL0QeyPQ="
+      "matricula_vigente": true
     }
   ]
 }

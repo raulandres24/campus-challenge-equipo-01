@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from reservas.models import Estudiante, Reserva, Sala
 from reservas.niveles import nivel_puede_usar_sala
-from reservas.padron import cargar_padron
+from reservas.padron import cargar_padron, registrar_desde_padron
 from reservas.services import ReservaRechazada, reservar_si_esta_disponible
 
 # ---------------------------------------------------------------------------
@@ -77,25 +77,25 @@ def _crear_salas(stdout) -> list[Sala]:
     return salas
 
 
-def _crear_estudiantes(stdout) -> list[Estudiante]:
-    """Crea los estudiantes del padrón simulado (los docentes y administradores no reservan)."""
+# Cuentas de demostración: se registran todas las personas del padrón con la contraseña
+# «password», salvo estas dos, que quedan SIN cuenta para probar la pantalla de registro.
+# (Sebastián está inactivo en el padrón y tampoco puede registrarse.)
+SIN_CUENTA_PARA_DEMO = {"92956", "72593"}
+
+
+def _registrar_cuentas_demo(stdout) -> list[Estudiante]:
+    """Crea las cuentas de demostración como si cada persona se hubiera registrado.
+
+    Devuelve los estudiantes creados (los usan las reservas de ejemplo).
+    """
     estudiantes = []
     for persona in cargar_padron():
-        if persona.get("rol") != "estudiante":
+        if not persona["activo"] or persona["codigo"] in SIN_CUENTA_PARA_DEMO:
             continue
-        est, creado = Estudiante.objects.get_or_create(
-            codigo_estudiante=persona["codigo"],
-            defaults={
-                "nombres": persona["nombres"],
-                "apellidos": persona["apellidos"],
-                "esta_activo": persona["activo"],
-                "matricula_pagada": persona["matricula_vigente"],
-                "nivel": persona["nivel"],
-            },
-        )
-        estado = "[OK] creado" if creado else "[skip] ya existía"
-        stdout.write(f"  Estudiante '{est}' ({est.nivel}) — {estado}")
-        estudiantes.append(est)
+        registrar_desde_padron(persona, "password")
+        if persona.get("rol") == "estudiante":
+            estudiantes.append(Estudiante.objects.get(codigo_estudiante=persona["codigo"]))
+        stdout.write(f"  Cuenta '{persona['codigo']}' {persona['nombres']} {persona['apellidos']} ({persona.get('nivel') or persona['rol']})")
     return estudiantes
 
 
@@ -157,8 +157,8 @@ def _generar_reservas(salas: list[Sala], estudiantes: list[Estudiante], stdout) 
 
 class Command(BaseCommand):
     help = (
-        "Puebla la base de datos con las salas, los estudiantes del padrón simulado y reservas "
-        "de prueba. Las personas inician sesión con el padrón (datos/padron_upb.json). "
+        "Puebla la base de datos con las salas, las cuentas de demostración (registradas desde el "
+        "padrón simulado datos/padron_upb.json) y reservas de prueba. "
         "Usa --limpiar para reiniciar desde cero."
     )
 
@@ -175,7 +175,8 @@ class Command(BaseCommand):
             Reserva.objects.all().delete()
             Estudiante.objects.all().delete()
             Sala.objects.all().delete()
-            self.stdout.write("  Datos de negocio eliminados.\n")
+            User.objects.filter(is_superuser=False).delete()  # cuentas de personas; se recrean abajo
+            self.stdout.write("  Datos de negocio y cuentas de personas eliminados.\n")
 
         self.stdout.write(self.style.HTTP_INFO("-> Superusuario del sitio /admin/..."))
         _crear_superusuario(self.stdout)
@@ -183,10 +184,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("\n-> Creando salas..."))
         salas = _crear_salas(self.stdout)
 
-        self.stdout.write(self.style.HTTP_INFO("\n-> Creando estudiantes..."))
-        estudiantes = _crear_estudiantes(self.stdout)
+        self.stdout.write(self.style.HTTP_INFO("\n-> Registrando cuentas de demostración desde el padrón..."))
+        estudiantes = _registrar_cuentas_demo(self.stdout)
 
         self.stdout.write(self.style.HTTP_INFO("\n-> Generando reservas para el calendario..."))
         _generar_reservas(salas, estudiantes, self.stdout)
 
-        self.stdout.write(self.style.SUCCESS("\n[DONE] Base de datos poblada. Inicia sesión con una persona del padrón (ver README)."))
+        self.stdout.write(self.style.SUCCESS("\n[DONE] Base de datos poblada. Inicia sesión con una cuenta de demostración (ver README)."))

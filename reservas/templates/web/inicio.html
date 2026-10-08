@@ -105,6 +105,7 @@
             <div>
                 <h2 id="tituloReserva" class="text-lg font-bold">Reservar una sala</h2>
                 <p class="text-sm text-suave">Para el {{ fecha_formateada }}. Entre dos reservas de una sala quedan 15 min libres.</p>
+                {% if reservable_hasta %}<p class="text-sm font-bold">Puedes reservar hasta el {{ reservable_hasta|date:"l j \d\e F" }}.</p>{% endif %}
             </div>
             <button type="button" class="boton-secundario min-h-10 px-3 lg:hidden" onclick="cerrarHoja()">Cerrar</button>
         </div>

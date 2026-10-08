@@ -101,7 +101,9 @@ python manage.py runserver
 
 Abre <http://127.0.0.1:8000/> (también funciona en el celular: la interfaz es mobile-first). No necesitas Node: el CSS de Tailwind ya va compilado; ver "Interfaz" en el README si cambias clases.
 
-Hay **un solo inicio de sesión** para todos: código (5 dígitos), correo institucional y contraseña, verificados contra el padrón simulado `datos/padron_upb.json` (personas ficticias). Con `DEBUG` activo, la pantalla trae botones de demostración. La contraseña de todas las personas de demostración es `password` (**solo para desarrollo**).
+Hay **un solo inicio de sesión** para todos: código (5 dígitos), correo institucional y contraseña. Primero hay que **registrarse una vez** en `/registro/`: el sistema busca el código y el correo en el padrón simulado `datos/padron_upb.json` (personas ficticias) y, si figuran y están activos, la persona elige su contraseña. Después inicia sesión en `/login/`, que solo mira la base del proyecto.
+
+`poblar_bd` deja registradas las cuentas de demostración, con la contraseña `password` (**solo para desarrollo**). Con `DEBUG` activo, la pantalla de inicio de sesión trae botones para entrar con ellas.
 
 | Persona | Código | Correo | Rol |
 |---|---|---|---|
@@ -111,9 +113,11 @@ Hay **un solo inicio de sesión** para todos: código (5 dígitos), correo insti
 | Sergio Barrientos | `20011` | `sergio.barrientos@upb.example` | Docente (administra) |
 | Raúl, Hugo, Alejandro | `20013`, `20012`, `20014` | `raul.vaca@`, `hugo.zuniga@`, `alejandro.parraga@` + `upb.example` | Administradores |
 
+Para probar el registro quedan sin cuenta Diego (`92956`, `diego.suarez@est.upb.example`) y Gonzalo (`72593`, `gonzalo.peredo@est.upb.example`); elige una contraseña de al menos 8 caracteres que no sea común ni solo números.
+
 `poblar_bd` también crea el superusuario `admin` (contraseña `password`) solo para el sitio `/admin/` de Django.
 
-> **Si ya habías corrido `poblar_bd` antes de esta versión** (salas "Alfa", "Beta"…), corre una vez `python manage.py migrate` y luego `python manage.py poblar_bd --limpiar`. Borra las reservas, estudiantes y salas de demostración y las crea de nuevo con las salas A a J.
+> **Si ya habías corrido `poblar_bd` antes de esta versión** (salas "Alfa", "Beta"…), corre una vez `python manage.py migrate` y luego `python manage.py poblar_bd --limpiar`. Borra las reservas, estudiantes, salas y cuentas de personas de demostración y las crea de nuevo (salas A a J y cuentas registradas).
 
 ## 7. Pruebas (sin tocar la base real)
 

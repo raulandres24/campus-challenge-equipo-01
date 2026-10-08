@@ -15,9 +15,12 @@ import re
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -26,7 +29,8 @@ from proyecto.clases.horarios import minutos_a_time, parsear_horas, validar_rang
 from proyecto.clases.sistema_reservas import reservar_si_es_posible
 from .models import Estudiante, Reserva, Sala
 from .niveles import nivel_puede_usar_sala
-from .padron import verificar_credenciales
+from .ventanas import mensaje_fuera_de_ventana, puede_reservar_para, ultima_fecha_reservable
+from .padron import buscar_en_padron, registrar_desde_padron
 from .permisos import es_duenio_de_reserva, estudiante_del_usuario, obtener_info_usuario, tiene_poderes_especiales
 from .agenda import armar_agenda
 from .services import ReservaRechazada, ReservaYaComenzo, inicio_de_reserva, modificar_reserva_si_esta_disponible
@@ -63,12 +67,22 @@ def _destino_tras_login(request: HttpRequest, user) -> str:
     return "admin_dashboard" if tiene_poderes_especiales(user) else "inicio"
 
 
+def _verificar_ventana_de_reserva(estudiante, fecha: datetime.date) -> None:
+    """Regla de anticipación (reservas/ventanas.py): ¿ya se puede reservar para esa fecha?
+
+    Se aplica a estudiantes; el docente y los administradores quedan fuera (no se llama para ellos).
+    """
+    if not puede_reservar_para(estudiante.nivel, fecha, timezone.localtime()):
+        raise ReservaRechazada(mensaje_fuera_de_ventana(estudiante.nivel, fecha))
+
+
 def login_view(request: HttpRequest) -> HttpResponse:
     """Inicio de sesión único para estudiantes, docentes y administradores.
 
-    Se piden código (5 dígitos), correo institucional y contraseña, y se verifican contra
-    el padrón simulado (``reservas/padron.py``). El rol sale del padrón, no de la pantalla.
-    Si algún dato falla se muestra un mensaje genérico, para no revelar qué códigos existen.
+    Recorrido: FE → MW → DB del proyecto. Se piden código (5 dígitos), correo institucional
+    y contraseña, y se verifican contra la cuenta creada al registrarse. **No se consulta
+    el padrón**: eso ocurre solo en el registro (``registro_view``). Si algún dato falla se
+    muestra un mensaje genérico, para no revelar qué códigos tienen cuenta.
     """
     if request.user.is_authenticated:
         return redirect(_destino_tras_login(request, request.user))
@@ -82,21 +96,65 @@ def login_view(request: HttpRequest) -> HttpResponse:
         if not CODIGO_VALIDO.fullmatch(codigo):
             error_mensaje = "El código tiene 5 dígitos, por ejemplo 94210."
         else:
-            persona = verificar_credenciales(codigo, email, password)
-            if persona is None:
+            user = authenticate(request, codigo=codigo, email=email, password=password)
+            if user is None:
                 error_mensaje = "Código, correo o contraseña incorrectos."
-            elif not persona["activo"]:
-                error_mensaje = "Tu registro en el padrón no está activo. Consulta en Registros de la UPB."
             else:
-                user = authenticate(request, codigo=codigo, email=email, password=password)
-                login(request, user, backend="reservas.padron.PadronBackend")
+                login(request, user)
                 return redirect(_destino_tras_login(request, user))
 
     return render(request, "web/login.html", {
         "error_mensaje": error_mensaje,
+        "recien_registrado": request.GET.get("registrado") == "1",
         # Los accesos de demostración (con la contraseña a la vista) solo existen en desarrollo.
         "mostrar_demo": settings.DEBUG,
     })
+
+
+def registro_view(request: HttpRequest) -> HttpResponse:
+    """Registro: FE → MW → DB estática (padrón) → DB del proyecto.
+
+    La persona escribe su código y su correo institucional; si figuran juntos en el padrón
+    y su registro está activo, elige una contraseña y se crea su cuenta en la base del
+    proyecto. Después inicia sesión con el login normal.
+    """
+    if request.user.is_authenticated:
+        return redirect(_destino_tras_login(request, request.user))
+
+    errores: list[str] = []
+    valores = {"codigo": "", "email": ""}
+    if request.method == "POST":
+        codigo = request.POST.get("codigo", "").strip()
+        email = request.POST.get("email", "").strip()
+        password = request.POST.get("password", "")
+        repetir = request.POST.get("password2", "")
+        valores = {"codigo": codigo, "email": email}
+
+        persona = buscar_en_padron(codigo, email) if CODIGO_VALIDO.fullmatch(codigo) else None
+        if not CODIGO_VALIDO.fullmatch(codigo):
+            errores.append("El código tiene 5 dígitos, por ejemplo 94210.")
+        elif persona is None:
+            errores.append("No figuras en el padrón de la UPB con ese código y ese correo. Revisa ambos datos.")
+        elif not persona["activo"]:
+            errores.append("Tu registro en el padrón no está activo. Consulta en Registros de la UPB.")
+        elif User.objects.filter(username=persona["codigo"]).exists():
+            errores.append("Ese código ya tiene una cuenta. Inicia sesión.")
+        elif password != repetir:
+            errores.append("Las contraseñas no coinciden.")
+        else:
+            candidato = User(
+                username=persona["codigo"], email=persona["email"],
+                first_name=persona["nombres"], last_name=persona["apellidos"],
+            )
+            try:
+                validate_password(password, user=candidato)
+            except ValidationError as error:
+                errores.extend(error.messages)
+            else:
+                registrar_desde_padron(persona, password)
+                return redirect(f"{reverse('login')}?registrado=1")
+
+    return render(request, "web/registro.html", {"errores": errores, "valores": valores})
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -121,8 +179,8 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
 
     sala_filtro = request.GET.get("sala", "todas")
     salas = list(Sala.objects.all().order_by("nombre"))
-    user_info = obtener_info_usuario(request.user)
     estudiante_asociado = estudiante_del_usuario(request.user)
+    user_info = obtener_info_usuario(request.user, estudiante_asociado)
     if not user_info["tiene_poderes"] and estudiante_asociado is not None:
         # Un estudiante solo ve las salas de su nivel (A y E: postgrado y doctorado).
         salas = [s for s in salas if nivel_puede_usar_sala(estudiante_asociado.nivel, s.exclusiva_posgrado)]
@@ -189,6 +247,11 @@ def inicio_view(request: HttpRequest) -> HttpResponse:
         "estudiante_asociado": estudiante_asociado,
         "estudiantes_habilitados": estudiantes_habilitados,
         "tiene_poderes": user_info["tiene_poderes"],
+        # Hasta qué día puede reservar hoy (el docente y los administradores no tienen límite).
+        "reservable_hasta": (
+            ultima_fecha_reservable(estudiante_asociado.nivel, timezone.localtime())
+            if estudiante_asociado is not None and not user_info["tiene_poderes"] else None
+        ),
     }
 
     return render(request, "web/inicio.html", context)
@@ -336,6 +399,15 @@ def api_reservar(request: HttpRequest) -> JsonResponse:
                     "mensaje": "Tu usuario no está vinculado a un estudiante. Inicia sesión con tu código y correo.",
                 }, status=403)
             codigo_estudiante = propio.codigo_estudiante
+            try:
+                fecha_a_reservar = datetime.date.fromisoformat(fecha_str) if fecha_str else timezone.localdate()
+            except ValueError:
+                fecha_a_reservar = None  # fecha mal escrita: la valida reservar_si_es_posible
+            if fecha_a_reservar is not None:
+                try:
+                    _verificar_ventana_de_reserva(propio, fecha_a_reservar)
+                except ReservaRechazada as e:
+                    return JsonResponse({"estado": "RECHAZADA", "mensaje": str(e)})
 
         if not codigo_estudiante or not nombre_sala or not hora_inicio or not hora_fin:
             return JsonResponse({
@@ -487,6 +559,8 @@ def api_modificar_reserva(request: HttpRequest) -> JsonResponse:
         }, status=400)
 
     try:
+        if not tiene_poderes_especiales(request.user):
+            _verificar_ventana_de_reserva(reserva.estudiante, fecha)
         reserva = modificar_reserva_si_esta_disponible(
             reserva=reserva, fecha=fecha, hora_inicio=hora_inicio, hora_fin=hora_fin,
         )

@@ -22,9 +22,15 @@ import pytest
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "reservas_upb.settings")
 django.setup()
 
+from django.contrib.auth.models import User
 from django.db import connection
+from django.test import Client
 
 from reservas.models import Estudiante, Reserva, Sala
+from reservas.padron import cargar_padron, registrar_desde_padron
+
+# Contraseña que usan las pruebas al registrar cuentas (cumple las reglas de contraseña).
+CLAVE_TEST = "Clave-segura-2026"
 
 
 @pytest.fixture(scope="session")
@@ -41,8 +47,20 @@ def bd_de_prueba():
     connection.creation.destroy_test_db(nombre_real, verbosity=0)
 
 
+def _limpiar_cuentas_del_padron():
+    """Borra las cuentas (User y Estudiante) de las personas del padrón creadas por las pruebas."""
+    codigos = [persona["codigo"] for persona in cargar_padron()]
+    estudiantes = list(Estudiante.objects.filter(codigo_estudiante__in=codigos))
+    ids = [e.id for e in estudiantes]
+    if ids:
+        Reserva.objects.filter(estudiante_id__in=ids).delete()
+        Estudiante.objects.filter(id__in=ids).delete()
+    User.objects.filter(username__in=codigos).delete()
+
+
 def _limpiar_datos_test():
     """Limpia registros de prueba en MongoDB sin usar queries JOIN que no soporta Mongo."""
+    _limpiar_cuentas_del_padron()
     # 1. Obtener IDs de estudiantes de test
     test_estudiantes = list(Estudiante.objects.filter(codigo_estudiante__startswith="TEST-"))
     test_est_ids = [e.id for e in test_estudiantes]
@@ -165,3 +183,20 @@ def sala_posgrado_db(limpiar_reservas_test):
     sala.exclusiva_posgrado = True
     sala.save()
     return sala
+
+
+@pytest.fixture
+def iniciar_sesion(limpiar_reservas_test):
+    """Devuelve una función ``iniciar_sesion(codigo)``: registra a esa persona del padrón y entra.
+
+    Sigue el mismo camino que la aplicación: la cuenta se crea con ``registrar_desde_padron``
+    y el login (``/login/``) solo mira la base del proyecto.
+    """
+    def _iniciar(codigo):
+        persona = next(p for p in cargar_padron() if p["codigo"] == codigo)
+        registrar_desde_padron(persona, CLAVE_TEST)
+        cliente = Client()
+        respuesta = cliente.post("/login/", {"codigo": codigo, "email": persona["email"], "password": CLAVE_TEST})
+        assert respuesta.status_code == 302
+        return cliente
+    return _iniciar
