@@ -12,8 +12,8 @@ Hoy las reservas de salas llegan por mensajes, lo que provoca cruces de horario 
 
 | Integrante | Rol principal |
 |---|---|
-| Raúl Vaca | Backend: reglas de negocio, pruebas e integración |
-| Hugo Zúñiga | Arquitectura Django + MongoDB actual y pantallas (`login`, `inicio`, panel de administrador) |
+| Hugo Zúñiga | Backend: reglas de negocio, pruebas e integración |
+| Raúl Vaca | Arquitectura Django + MongoDB actual y pantallas (`login`, `inicio`, panel de administrador) |
 | Alejandro Párraga | Frontend (sin disponibilidad para el incremento 8-9; la tarea C la asumió Raúl) |
 
 Docente y cliente: Ing. Sergio Barrientos.
