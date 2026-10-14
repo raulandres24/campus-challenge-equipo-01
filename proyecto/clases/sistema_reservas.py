@@ -27,6 +27,8 @@ from .reserva import (
 )
 from .sala import Sala, obtener_sala, validar_sala_habilitada
 
+buffer_min = 15
+
 asegurar_django()
 
 
@@ -143,7 +145,6 @@ def consultar_espacios_disponibles(
     hora_inicio: Union[str, datetime.time],
     hora_fin: Union[str, datetime.time],
     fecha: Optional[Union[str, datetime.date]] = None,
-    buffer_min: int = 15,
 ) -> List[str]:
     """Consulta y retorna los nombres de salas disponibles en un horario."""
     return consultar_salas_disponibles_dia(fecha, hora_inicio, hora_fin, buffer_min)
@@ -214,7 +215,7 @@ class SistemaReservas:
         self.reservas.append(nueva_reserva)
         return {"estado": "CONFIRMADA", "mensaje": "Reserva exitosa."}
 
-    def consultar_espacios_disponibles(self, hora_inicio, hora_fin, buffer_min=15):
+    def consultar_espacios_disponibles(self, hora_inicio, hora_fin):
         estudiante_temp = Estudiante(0)
         disponibles = []
         for id_sala, sala in self.salas.items():
