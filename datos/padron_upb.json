@@ -13,10 +13,10 @@
       "matricula_vigente": true
     },
     {
-      "codigo": "20012",
+      "codigo": "95503",
       "nombres": "Hugo",
       "apellidos": "Zúñiga",
-      "email": "hugo.zuniga@upb.example",
+      "email": "hugodaza1@upb.example",
       "rol": "admin",
       "nivel": null,
       "carrera": null,

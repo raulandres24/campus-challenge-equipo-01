@@ -43,14 +43,8 @@ def test_rechaza_reserva_si_no_respeta_15_minutos_de_desalojo():
     estudiante_nuevo = Estudiante(92345)
 
     sistema.crear_reserva(estudiante_previo, "A", "07:45", "09:45", 4)
+    resultado = sistema.crear_reserva(estudiante_nuevo, "A", "09:50", "12:00", 4)
 
-    resultado = sistema.crear_reserva(
-        estudiante=estudiante_nuevo,
-        id_sala="A",
-        hora_inicio="09:50",
-        hora_fin="12:00",
-        asistentes=4,
-    )
     assert resultado["estado"] == "RECHAZADA"
     assert "15 minutos" in resultado["mensaje"]
 
@@ -63,14 +57,8 @@ def test_rechaza_si_estudiante_ya_tiene_reserva_en_otra_sala_mismo_bloque():
     estudiante = Estudiante(92345)
 
     sistema.crear_reserva(estudiante, "B", "10:00", "12:00", 2)
+    resultado = sistema.crear_reserva(estudiante, "A", "10:00", "12:00", 3)
 
-    resultado = sistema.crear_reserva(
-        estudiante=estudiante,
-        id_sala="A",
-        hora_inicio="10:00",
-        hora_fin="12:00",
-        asistentes=3,
-    )
     assert resultado["estado"] == "RECHAZADA"
     assert "espacio reservado" in resultado["mensaje"]
 
@@ -113,4 +101,4 @@ def test_cancelar_reserva_rechazada_si_no_existe():
     resultado = sistema.cancelar_reserva(99999, "A")
 
     assert resultado["estado"] == "RECHAZADA"
-    assert len(sistema.reservas) == 1
+    assert len(sistema.reservas) == 1
